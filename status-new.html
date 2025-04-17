@@ -1,119 +1,289 @@
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
-    authDomain: "project-defcon.firebaseapp.com",
-    databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "project-defcon",
-    storageBucket: "project-defcon.firebasestorage.app",
-    messagingSenderId: "376651705241",
-    appId: "1:376651705241:web:8cace3386f1c96bc790108",
-    measurementId: "G-1PY12F8HSY"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const statusRef = ref(db, '/');
-
-  let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
-  audio.loop = true;
-
-  let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
-
-  let isMuted = false;
-  let previousDefcon = null;
-
-  document.body.addEventListener("click", () => {
-    audio.play().then(() => audio.pause()).catch(() => {});
-    defconChangeSound.play().then(() => defconChangeSound.pause()).catch(() => {});
-  }, { once: true });
-
-  const codeDescriptions = {
-    0: "No code active. All systems normal.",
-    1: "Personnel in danger",
-    2: "Medical emergency",
-    3: "Base lockdown",
-    4: "All personnel report to Tactical point",
-    5: "Combat in progress",
-    6: "Raid imminent",
-    7: "Evacuation protocol",
-    8: "Intruder alert",
-    9: "Compromised personnel"
-  };
-
-  const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
-
-  function playAlarm() {
-    audio.pause();
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  }
-
-  function updateAlarm(data) {
-    const defconElem = document.getElementById('defcon');
-    if (defconElem) defconElem.textContent = data.defcon;
-
-    document.querySelectorAll('.defcon-light').forEach((el, idx) => {
-      const defconLevel = 5 - idx;
-      el.style.backgroundColor = (defconLevel === data.defcon) ? defconColors[5 - defconLevel] : '#111';
-    });
-
-    document.getElementById('code').textContent = `Code ${data.code}`;
-    document.getElementById('meaning').textContent = codeDescriptions[data.code] || "Unknown Code";
-
-    const alarmEl = document.getElementById('alarm');
-    if (data.alarmActive) {
-      alarmEl.textContent = '🔴 ALARM ACTIVE';
-    } else if (data.code > 0) {
-      alarmEl.textContent = `🟡 ${codeDescriptions[data.code] || 'Code Active'}`;
-    } else {
-      alarmEl.textContent = '🟢 All Clear';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Project DEFCON - Status</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: monospace;
+      color: white;
+      display: grid;
+      grid-template-areas:
+        "defcon defcon defcon"
+        "info center settings"
+        "footer footer footer";
+      grid-template-columns: 300px 1fr 300px;
+      grid-template-rows: 80px 1fr 60px;
+      height: 100vh;
+      background-color: #001f00;
+      transition: background-color 0.8s ease;
     }
-
-    document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
-
-    // Play DEFCON change sound (once), respect mute
-    if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
-      defconChangeSound.pause();
-      defconChangeSound.currentTime = 0;
-      defconChangeSound.play().catch(() => {});
+    body.defcon-1 { background-color: #330000; }
+    body.defcon-2 { background-color: #332200; }
+    body.defcon-3 { background-color: #333300; }
+    body.defcon-4 { background-color: #003300; }
+    body.defcon-5 { background-color: #000033; }
+    body.alarm-flash {
+      animation: red-border-pulse 1s infinite;
     }
-    previousDefcon = data.defcon;
+    @keyframes red-border-pulse {
+      0%, 100% { box-shadow: 0 0 25px 10px red inset; }
+      50% { box-shadow: 0 0 5px 2px red inset; }
+    }
+    .defcon-bar {
+      grid-area: defcon;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      background: #111;
+      border-bottom: 2px solid lime;
+      padding: 10px;
+    }
+    .defcon-light {
+      width: 60px;
+      height: 60px;
+      background: #111;
+      border: 2px solid #0f0;
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+    .left-panel {
+      grid-area: info;
+      background: #111;
+      padding: 20px;
+      border-right: 2px solid lime;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+    .panel-title {
+      font-size: 1.5em;
+      color: lime;
+    }
+    .panel-content {
+      font-size: 1.1em;
+    }
+    .center-panel {
+      grid-area: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 30px;
+      text-align: center;
+    }
+    .title {
+      font-size: 3em;
+      color: lime;
+      margin: 10px 0;
+    }
+    #alarm {
+      font-size: 3em;
+      font-weight: bold;
+      margin: 20px 0 10px;
+    }
+    #code {
+      font-size: 2em;
+      margin: 5px 0;
+    }
+    #meaning {
+      font-size: 1.2em;
+      max-width: 600px;
+      margin: 5px auto 10px;
+    }
+    #last-center {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+    .right-panel {
+      grid-area: settings;
+      background: #111;
+      padding: 20px;
+      border-left: 2px solid lime;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+    .mute-btn {
+      font-size: 1em;
+      padding: 10px;
+      cursor: pointer;
+      background: #111;
+      color: white;
+      border: 1px solid lime;
+      border-radius: 5px;
+    }
+    .time-bar {
+      grid-area: footer;
+      background: #111;
+      border-top: 2px solid lime;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+    #bigClock {
+      font-size: 2.5em;
+      color: lime;
+      letter-spacing: 2px;
+    }
+    #defcon {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="defcon-bar">
+    <div class="defcon-light"></div>
+    <div class="defcon-light"></div>
+    <div class="defcon-light"></div>
+    <div class="defcon-light"></div>
+    <div class="defcon-light"></div>
+  </div>
+  <div class="left-panel">
+    <div class="panel-title">🛰 Info panel</div>
+    <div class="panel-content">
+      Base info:<br />
+      Respond to alerts immediately.<br />
+      Credits to matesaman9910 and 111Vojta.<br />
+    </div>
+  </div>
+  <div class="center-panel">
+    <div id="defcon"></div>
+    <div class="title">🚨 PROJECT DEFCON</div>
+    <div id="alarm">Loading...</div>
+    <div id="code">Code ...</div>
+    <div id="meaning">Loading description...</div>
+    <div id="last-center">Updated ...</div>
+  </div>
+  <div class="right-panel">
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
+  </div>
+  <div class="time-bar">
+    <div id="bigClock">--:--:--</div>
+  </div>
 
-    // Update body classes
-    document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
-    document.body.classList.add(`defcon-${data.defcon}`);
+  <!-- Firebase SDK (CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    if (data.alarmActive) {
-      document.body.classList.add("alarm-flash");
-      if (!isMuted) playAlarm();
-    } else {
-      document.body.classList.remove("alarm-flash");
+  <!-- Working JS code -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
+      authDomain: "project-defcon.firebaseapp.com",
+      databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "project-defcon",
+      storageBucket: "project-defcon.firebasestorage.app",
+      messagingSenderId: "376651705241",
+      appId: "1:376651705241:web:8cace3386f1c96bc790108",
+      measurementId: "G-1PY12F8HSY"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const statusRef = db.ref('/');
+
+    let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
+    audio.loop = true;
+    let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
+
+    let isMuted = false;
+    let previousDefcon = null;
+
+    document.body.addEventListener("click", () => {
+      audio.play().then(() => audio.pause()).catch(() => {});
+      defconChangeSound.play().then(() => defconChangeSound.pause()).catch(() => {});
+    }, { once: true });
+
+    const codeDescriptions = {
+      0: "No code active. All systems normal.",
+      1: "Personnel in danger",
+      2: "Medical emergency",
+      3: "Base lockdown",
+      4: "All personnel report to Tactical point",
+      5: "Combat in progress",
+      6: "Raid imminent",
+      7: "Evacuation protocol",
+      8: "Intruder alert",
+      9: "Compromised personnel"
+    };
+
+    const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
+
+    function playAlarm() {
       audio.pause();
       audio.currentTime = 0;
+      audio.play().catch(() => {});
     }
 
-    window.__alarmActive = data.alarmActive;
-  }
+    function updateAlarm(data) {
+      const defconElem = document.getElementById('defcon');
+      if (defconElem) defconElem.textContent = data.defcon;
 
-  onValue(statusRef, (snapshot) => updateAlarm(snapshot.val()));
+      document.querySelectorAll('.defcon-light').forEach((el, idx) => {
+        const defconLevel = 5 - idx;
+        el.style.backgroundColor = (defconLevel === data.defcon) ? defconColors[5 - defconLevel] : '#111';
+      });
 
-  window.toggleMute = () => {
-    isMuted = !isMuted;
-    document.getElementById("muteBtn").textContent = isMuted ? "🔇 Unmute Alarm" : "🔊 Mute Alarm";
-    if (window.__alarmActive) {
-      if (isMuted) {
-        audio.pause();
+      document.getElementById('code').textContent = `Code ${data.code}`;
+      document.getElementById('meaning').textContent = codeDescriptions[data.code] || "Unknown Code";
+
+      const alarmEl = document.getElementById('alarm');
+      if (data.alarmActive) {
+        alarmEl.textContent = '🔴 ALARM ACTIVE';
+      } else if (data.code > 0) {
+        alarmEl.textContent = `🟡 ${codeDescriptions[data.code] || 'Code Active'}`;
       } else {
-        playAlarm();
+        alarmEl.textContent = '🟢 All Clear';
       }
-    }
-  };
 
-  setInterval(() => {
-    const now = new Date();
-    document.getElementById("bigClock").textContent = now.toLocaleTimeString();
-  }, 1000);
-</script>
+      document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
+
+      if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
+        defconChangeSound.pause();
+        defconChangeSound.currentTime = 0;
+        defconChangeSound.play().catch(() => {});
+      }
+      previousDefcon = data.defcon;
+
+      document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
+      document.body.classList.add(`defcon-${data.defcon}`);
+
+      if (data.alarmActive) {
+        document.body.classList.add("alarm-flash");
+        if (!isMuted) playAlarm();
+      } else {
+        document.body.classList.remove("alarm-flash");
+        audio.pause();
+        audio.currentTime = 0;
+      }
+
+      window.__alarmActive = data.alarmActive;
+    }
+
+    statusRef.on('value', snapshot => updateAlarm(snapshot.val()));
+
+    window.toggleMute = () => {
+      isMuted = !isMuted;
+      document.getElementById("muteBtn").textContent = isMuted ? "🔇 Unmute Alarm" : "🔊 Mute Alarm";
+      if (window.__alarmActive) {
+        if (isMuted) {
+          audio.pause();
+        } else {
+          playAlarm();
+        }
+      }
+    };
+
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById("bigClock").textContent = now.toLocaleTimeString();
+    }, 1000);
+  </script>
+</body>
+</html>
