@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Project DEFCON - Status</title>
-  <script type="module">
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
   import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
@@ -24,10 +19,15 @@
 
   let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
   audio.loop = true;
+
+  let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
+
   let isMuted = false;
+  let previousDefcon = null;
 
   document.body.addEventListener("click", () => {
     audio.play().then(() => audio.pause()).catch(() => {});
+    defconChangeSound.play().then(() => defconChangeSound.pause()).catch(() => {});
   }, { once: true });
 
   const codeDescriptions = {
@@ -56,10 +56,9 @@
     if (defconElem) defconElem.textContent = data.defcon;
 
     document.querySelectorAll('.defcon-light').forEach((el, idx) => {
-  const defconLevel = 5 - idx;
-  el.style.backgroundColor = (defconLevel === data.defcon) ? defconColors[5 - defconLevel] : '#111';
-});
-
+      const defconLevel = 5 - idx;
+      el.style.backgroundColor = (defconLevel === data.defcon) ? defconColors[5 - defconLevel] : '#111';
+    });
 
     document.getElementById('code').textContent = `Code ${data.code}`;
     document.getElementById('meaning').textContent = codeDescriptions[data.code] || "Unknown Code";
@@ -74,6 +73,14 @@
     }
 
     document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
+
+    // Play DEFCON change sound (once), respect mute
+    if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
+      defconChangeSound.pause();
+      defconChangeSound.currentTime = 0;
+      defconChangeSound.play().catch(() => {});
+    }
+    previousDefcon = data.defcon;
 
     // Update body classes
     document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
@@ -110,227 +117,3 @@
     document.getElementById("bigClock").textContent = now.toLocaleTimeString();
   }, 1000);
 </script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: monospace;
-      color: white;
-      display: grid;
-      grid-template-areas:
-        "defcon defcon defcon"
-        "info center settings"
-        "footer footer footer";
-      grid-template-columns: 300px 1fr 300px;
-      grid-template-rows: 80px 1fr 60px;
-      height: 100vh;
-      background-color: #001f00;
-      transition: background-color 0.8s ease;
-    }
-
-    body.defcon-1 { background-color: #330000; }
-    body.defcon-2 { background-color: #332200; }
-    body.defcon-3 { background-color: #333300; }
-    body.defcon-4 { background-color: #003300; }
-    body.defcon-5 { background-color: #000033; }
-
-    body.alarm-flash {
-      animation: red-border-pulse 1s infinite;
-    }
-
-    @keyframes red-border-pulse {
-      0%, 100% { box-shadow: 0 0 25px 10px red inset; }
-      50% { box-shadow: 0 0 5px 2px red inset; }
-    }
-
-    .defcon-bar {
-      grid-area: defcon;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      background: #111;
-      border-bottom: 2px solid lime;
-      padding: 10px;
-    }
-
-    .defcon-light {
-      width: 60px;
-      height: 60px;
-      background: #111;
-      border: 2px solid #0f0;
-      border-radius: 10px;
-      transition: background 0.3s;
-    }
-
-    .left-panel {
-      grid-area: info;
-      background: #111;
-      padding: 20px;
-      border-right: 2px solid lime;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    .panel-title {
-      font-size: 1.5em;
-      color: lime;
-    }
-
-    .panel-content {
-      font-size: 1.1em;
-    }
-
-    .center-panel {
-      grid-area: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 30px;
-      text-align: center;
-    }
-
-    .title {
-      font-size: 3em;
-      color: lime;
-      margin: 10px 0;
-    }
-
-    #alarm {
-      font-size: 3em;
-      font-weight: bold;
-      margin: 20px 0 10px;
-    }
-
-    #code {
-      font-size: 2em;
-      margin: 5px 0;
-    }
-
-    #meaning {
-      font-size: 1.2em;
-      max-width: 600px;
-      margin: 5px auto 10px;
-    }
-
-    #last-center {
-      font-size: 0.9em;
-      color: #aaa;
-    }
-
-    .right-panel {
-      grid-area: settings;
-      background: #111;
-      padding: 20px;
-      border-left: 2px solid lime;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    .mute-btn {
-      font-size: 1em;
-      padding: 10px;
-      cursor: pointer;
-      background: #111;
-      color: white;
-      border: 1px solid lime;
-      border-radius: 5px;
-    }
-
-    .time-bar {
-      grid-area: footer;
-      background: #111;
-      border-top: 2px solid lime;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px;
-    }
-
-    #bigClock {
-      font-size: 2.5em;
-      color: lime;
-      letter-spacing: 2px;
-    }
-
-    #defcon {
-      display: none;
-    }
-	
-	#flash-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: red;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-body.alarm-flash #flash-overlay {
-  animation: flash-red 1s infinite;
-}
-
-@keyframes flash-red {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.5; }
-}
-
-  </style>
-</head>
-
-<body>
-<div id="flash-overlay"></div>
-
-  <!-- DEFCON Bar -->
-  <div class="defcon-bar">
-    <div class="defcon-light"></div>
-    <div class="defcon-light"></div>
-    <div class="defcon-light"></div>
-    <div class="defcon-light"></div>
-    <div class="defcon-light"></div>
-  </div>
-
-  <!-- Left Info Panel -->
-<div class="left-panel">
-  <div class="panel-title">📟 Alarm Codes</div>
-  <div class="panel-content">
-    0 – All Clear<br />
-    1 – Personnel in danger<br />
-    2 – Medical emergency<br />
-    3 – Base lockdown<br />
-    4 – Regroup at tactical point<br />
-    5 – Combat in progress<br />
-    6 – Raid imminent<br />
-    7 – Evacuation protocol<br />
-    8 – Intruder alert<br />
-    9 – Personnel compromised<br />
-  </div>
-</div>
-
-  <!-- Center Display -->
-  <div class="center-panel">
-    <div id="defcon"></div>
-    <div class="title">🚨 PROJECT DEFCON</div>
-    <div id="alarm">Loading...</div>
-    <div id="code">Code ...</div>
-    <div id="meaning">Loading description...</div>
-    <div id="last-center">Updated ...</div>
-  </div>
-
-  <!-- Right Panel -->
-  <div class="right-panel">
-    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
-  </div>
-
-  <!-- Bottom Clock -->
-  <div class="time-bar">
-    <div id="bigClock">--:--:--</div>
-  </div>
-
-</body>
-</html>
