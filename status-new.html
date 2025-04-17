@@ -19,18 +19,13 @@
       background-color: #001f00;
       transition: background-color 0.8s ease;
     }
+
     body.defcon-1 { background-color: #330000; }
     body.defcon-2 { background-color: #332200; }
     body.defcon-3 { background-color: #333300; }
     body.defcon-4 { background-color: #003300; }
     body.defcon-5 { background-color: #000033; }
-    body.alarm-flash {
-      animation: red-border-pulse 1s infinite;
-    }
-    @keyframes red-border-pulse {
-      0%, 100% { box-shadow: 0 0 25px 10px red inset; }
-      50% { box-shadow: 0 0 5px 2px red inset; }
-    }
+
     .defcon-bar {
       grid-area: defcon;
       display: flex;
@@ -41,6 +36,7 @@
       border-bottom: 2px solid lime;
       padding: 10px;
     }
+
     .defcon-light {
       width: 60px;
       height: 60px;
@@ -49,6 +45,7 @@
       border-radius: 10px;
       transition: background 0.3s;
     }
+
     .left-panel {
       grid-area: info;
       background: #111;
@@ -59,13 +56,16 @@
       justify-content: center;
       gap: 20px;
     }
+
     .panel-title {
       font-size: 1.5em;
       color: lime;
     }
+
     .panel-content {
       font-size: 1.1em;
     }
+
     .center-panel {
       grid-area: center;
       display: flex;
@@ -75,29 +75,35 @@
       padding: 0 30px;
       text-align: center;
     }
+
     .title {
       font-size: 3em;
       color: lime;
       margin: 10px 0;
     }
+
     #alarm {
       font-size: 3em;
       font-weight: bold;
       margin: 20px 0 10px;
     }
+
     #code {
       font-size: 2em;
       margin: 5px 0;
     }
+
     #meaning {
       font-size: 1.2em;
       max-width: 600px;
       margin: 5px auto 10px;
     }
+
     #last-center {
       font-size: 0.9em;
       color: #aaa;
     }
+
     .right-panel {
       grid-area: settings;
       background: #111;
@@ -108,6 +114,7 @@
       justify-content: center;
       gap: 20px;
     }
+
     .mute-btn {
       font-size: 1em;
       padding: 10px;
@@ -117,6 +124,7 @@
       border: 1px solid lime;
       border-radius: 5px;
     }
+
     .time-bar {
       grid-area: footer;
       background: #111;
@@ -126,17 +134,41 @@
       align-items: center;
       padding: 10px;
     }
+
     #bigClock {
       font-size: 2.5em;
       color: lime;
       letter-spacing: 2px;
     }
+
     #defcon {
       display: none;
+    }
+
+    /* Flashing overlay */
+    #flash-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: red;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    body.alarm-flash #flash-overlay {
+      animation: flash-red 1s infinite;
+    }
+
+    @keyframes flash-red {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.4; }
     }
   </style>
 </head>
 <body>
+  <div id="flash-overlay"></div>
+
+  <!-- DEFCON Bar -->
   <div class="defcon-bar">
     <div class="defcon-light"></div>
     <div class="defcon-light"></div>
@@ -144,6 +176,8 @@
     <div class="defcon-light"></div>
     <div class="defcon-light"></div>
   </div>
+
+  <!-- Left Info Panel -->
   <div class="left-panel">
     <div class="panel-title">🛰 Info panel</div>
     <div class="panel-content">
@@ -152,6 +186,8 @@
       Credits to matesaman9910 and 111Vojta.<br />
     </div>
   </div>
+
+  <!-- Center Display -->
   <div class="center-panel">
     <div id="defcon"></div>
     <div class="title">🚨 PROJECT DEFCON</div>
@@ -160,18 +196,22 @@
     <div id="meaning">Loading description...</div>
     <div id="last-center">Updated ...</div>
   </div>
+
+  <!-- Right Panel -->
   <div class="right-panel">
     <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
   </div>
+
+  <!-- Bottom Clock -->
   <div class="time-bar">
     <div id="bigClock">--:--:--</div>
   </div>
 
-  <!-- Firebase SDK (CDN) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- Working JS code -->
+  <!-- Core Logic -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
