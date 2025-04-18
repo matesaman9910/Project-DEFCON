@@ -236,14 +236,18 @@
 
     let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
     audio.loop = true;
+
     let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
+    let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
 
     let isMuted = false;
     let previousDefcon = null;
+    let previousCode = null;
 
     document.body.addEventListener("click", () => {
       audio.play().then(() => audio.pause()).catch(() => {});
       defconChangeSound.play().then(() => defconChangeSound.pause()).catch(() => {});
+      codeChangeSound.play().then(() => codeChangeSound.pause()).catch(() => {});
     }, { once: true });
 
     const codeDescriptions = {
@@ -296,6 +300,13 @@
         defconChangeSound.play().catch(() => {});
       }
       previousDefcon = data.defcon;
+
+      if (previousCode !== null && previousCode !== data.code && !isMuted) {
+        codeChangeSound.pause();
+        codeChangeSound.currentTime = 0;
+        codeChangeSound.play().catch(() => {});
+      }
+      previousCode = data.code;
 
       document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
       document.body.classList.add(`defcon-${data.defcon}`);
