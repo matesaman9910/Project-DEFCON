@@ -96,7 +96,7 @@
     }
 
     #announcement {
-      font-size: 1.5em;
+      font-size: 1.8em;
       color: yellow;
       padding: 10px;
       margin-top: 10px;
@@ -178,7 +178,6 @@
 <body>
   <div id="flash-overlay"></div>
 
-  <!-- DEFCON Bar -->
   <div class="defcon-bar">
     <div class="defcon-light">5</div>
     <div class="defcon-light">4</div>
@@ -187,7 +186,6 @@
     <div class="defcon-light">1</div>
   </div>
 
-  <!-- Left Info Panel -->
   <div class="left-panel">
     <div class="panel-title">📟 Alarm Codes</div>
     <div class="panel-content">
@@ -204,7 +202,6 @@
     </div>
   </div>
 
-  <!-- Center Display -->
   <div class="center-panel">
     <div class="title">🚨 PROJECT DEFCON</div>
     <div id="alarm">Loading...</div>
@@ -214,20 +211,16 @@
     <div id="last-center">Updated ...</div>
   </div>
 
-  <!-- Right Panel -->
   <div class="right-panel">
     <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
   </div>
 
-  <!-- Bottom Clock -->
   <div class="time-bar">
     <div id="bigClock">--:--:--</div>
   </div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
@@ -249,7 +242,6 @@
     audio.loop = true;
     let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
     let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
-    let ttsSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/anouncmentadmin.mp3");
 
     let isMuted = false;
     let previousDefcon = null;
@@ -337,9 +329,11 @@
       if (text !== lastAnnouncement) {
         box.textContent = text;
         if (!isMuted) {
-          ttsSound.play().catch(() => {});
           const utter = new SpeechSynthesisUtterance(text);
-          speechSynthesis.cancel(); // Clear previous
+          utter.volume = 1;         // Max volume
+          utter.rate = 0.75;        // Slower speed
+          utter.pitch = 1;
+          speechSynthesis.cancel();
           speechSynthesis.speak(utter);
         }
         lastAnnouncement = text;
