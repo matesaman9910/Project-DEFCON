@@ -252,13 +252,16 @@
     let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
     let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
 
+    let announceSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/anouncmentadmin.mp3");
+    announceSound.volume = 0.5;
+
     let isMuted = false;
     let previousDefcon = null;
     let previousCode = null;
     let lastAnnouncement = "";
 
     document.body.addEventListener("click", () => {
-      [audio, defconChangeSound, codeChangeSound].forEach(a => {
+      [audio, defconChangeSound, codeChangeSound, announceSound].forEach(a => {
         a.play().then(() => a.pause()).catch(() => {});
       });
     }, { once: true });
@@ -279,8 +282,7 @@
     const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
 
     function playAlarm() {
-      audio.pause();
-      audio.currentTime = 0;
+      audio.pause(); audio.currentTime = 0;
       audio.play().catch(() => {});
     }
 
@@ -337,7 +339,7 @@
 
     statusRef.on('value', snap => updateAlarm(snap.val()));
 
-    announceRef.on('value', (snap) => {
+    announceRef.on('value', snap => {
       const text = snap.val();
       const box = document.getElementById("announcement");
 
@@ -348,20 +350,22 @@
 
       if (text !== lastAnnouncement) {
         box.textContent = text;
+        lastAnnouncement = text;
 
         if (!isMuted) {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.volume = 1;
-          utter.rate = 0.7;
-          utter.lang = "en-US";
-          const voice = speechSynthesis.getVoices().find(v => v.lang.startsWith("en"));
-          if (voice) utter.voice = voice;
+          announceSound.pause(); announceSound.currentTime = 0;
+          announceSound.play().then(() => {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.volume = 1;
+            utter.rate = 0.7;
+            utter.lang = "en-US";
+            const voice = speechSynthesis.getVoices().find(v => v.lang.startsWith("en"));
+            if (voice) utter.voice = voice;
 
-          speechSynthesis.cancel();
-          speechSynthesis.speak(utter);
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utter);
+          }).catch(() => {});
         }
-
-        lastAnnouncement = text;
       }
     });
 
