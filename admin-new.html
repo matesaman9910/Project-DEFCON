@@ -262,7 +262,18 @@
       <label>Enter Alarm Code:</label>
       <div id="codeDisplay" class="display-box">Code 0</div>
       <div class="keypad">
-        ${[1,2,3,4,5,6,7,8,9,0].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
+        <button onclick="keypadPress(1)">1</button>
+        <button onclick="keypadPress(2)">2</button>
+        <button onclick="keypadPress(3)">3</button>
+        <button onclick="keypadPress(4)">4</button>
+        <button onclick="keypadPress(5)">5</button>
+        <button onclick="keypadPress(6)">6</button>
+        <button onclick="keypadPress(7)">7</button>
+        <button onclick="keypadPress(8)">8</button>
+        <button onclick="keypadPress(9)">9</button>
+        <div></div>
+        <button onclick="keypadPress(0)">0</button>
+        <div></div>
       </div>
     </div>
 
