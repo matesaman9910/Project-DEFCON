@@ -24,15 +24,9 @@
     const auth = getAuth(app);
 
     onAuthStateChanged(auth, (user) => {
-      const panel = document.querySelector(".panel");
-      const overlay = document.getElementById("loginOverlay");
-      if (user) {
-        panel.style.display = "flex";
-        overlay.style.display = "none";
-      } else {
-        panel.style.display = "none";
-        overlay.style.display = "flex";
-      }
+      document.querySelector(".panel").style.display = user ? "flex" : "none";
+      document.getElementById("loginOverlay").style.display = user ? "none" : "flex";
+      document.getElementById("logoutBtn").style.display = user ? "block" : "none";
     });
 
     window.login = () => {
@@ -80,6 +74,16 @@
     };
 
     window.updateStatus = updateFirebase;
+
+    window.sendAnnouncement = () => {
+      const text = document.getElementById("announcementInput").value.trim();
+      const refPath = ref(db, "/announcement");
+      if (text === ":clear") {
+        set(refPath, "");
+      } else {
+        set(refPath, text);
+      }
+    };
   </script>
 
   <style>
@@ -103,7 +107,6 @@
 
     .crt {
       text-shadow: 0 0 2px #0f0, 0 0 10px #0f0;
-      position: relative;
     }
 
     .scanlines::after {
@@ -135,14 +138,14 @@
       position: relative;
     }
 
-    .lever-wrapper, .key-switch-wrapper {
+    .lever-wrapper,
+    .key-switch-wrapper {
       display: flex;
       align-items: center;
       gap: 15px;
     }
 
     .lever {
-      appearance: none;
       width: 100%;
       height: 20px;
       background: #0f03;
@@ -182,10 +185,6 @@
       cursor: pointer;
     }
 
-    .status {
-      font-size: 1.2em;
-    }
-
     .update-btn {
       background: #004400;
       border: 1px solid #0f0;
@@ -196,11 +195,36 @@
       width: 100%;
     }
 
-    /* LOGIN OVERLAY */
+    .status {
+      font-size: 1.2em;
+    }
+
+    #announcementInput {
+      width: 100%;
+      background: #001100;
+      color: lime;
+      border: 1px solid #0f0;
+      padding: 10px;
+      font-family: inherit;
+    }
+
+    #logoutBtn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #001100;
+      color: lime;
+      border: 1px solid lime;
+      padding: 8px 12px;
+      font-size: 1em;
+      cursor: pointer;
+      z-index: 9999;
+    }
+
     #loginOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.95);
+      background: rgba(0, 0, 0, 0.95);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -216,24 +240,9 @@
       border: 1px solid lime;
       color: lime;
     }
-
-    #logoutBtn {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: #001100;
-      color: lime;
-      border: 1px solid lime;
-      padding: 8px 12px;
-      font-size: 1em;
-      cursor: pointer;
-      z-index: 9999;
-    }
   </style>
 </head>
 <body>
-
-  <!-- Login overlay -->
   <div id="loginOverlay">
     <h2>🔐 Admin Login</h2>
     <input id="email" type="email" placeholder="Email" />
@@ -242,10 +251,8 @@
     <div id="loginError" style="color:red;margin-top:10px;"></div>
   </div>
 
-  <!-- Logout Button -->
-  <button id="logoutBtn" onclick="logout()">🚪 Logout</button>
+  <button id="logoutBtn" onclick="logout()" style="display:none">🚪 Logout</button>
 
-  <!-- Control Panel -->
   <div class="panel crt scanlines">
     <h1 class="crt">🖥 DEFCON CRT Control</h1>
 
@@ -279,9 +286,11 @@
       <div id="alarmStatus" class="display-box">🔈 ALARM OFF</div>
     </div>
 
+    <input id="announcementInput" type="text" placeholder="Type announcement or :clear" />
+    <button class="update-btn" onclick="sendAnnouncement()">📢 SEND ANNOUNCEMENT</button>
+
     <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
     <div id="status" class="status">Awaiting update...</div>
   </div>
-
 </body>
 </html>
