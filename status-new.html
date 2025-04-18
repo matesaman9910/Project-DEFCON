@@ -43,7 +43,6 @@
       background: #111;
       border: 2px solid #0f0;
       border-radius: 10px;
-      transition: background 0.3s, color 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -53,10 +52,316 @@
       text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
     }
 
-    /* ... more CSS and TTS logic continues */
+    .left-panel {
+      grid-area: info;
+      background: #111;
+      padding: 20px;
+      border-right: 2px solid lime;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .panel-title {
+      font-size: 1.5em;
+      color: lime;
+    }
+
+    .panel-content {
+      font-size: 1.1em;
+    }
+
+    .center-panel {
+      grid-area: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 30px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 3em;
+      color: lime;
+      margin: 10px 0;
+    }
+
+    #alarm {
+      font-size: 3em;
+      font-weight: bold;
+      margin: 20px 0 10px;
+    }
+
+    #code {
+      font-size: 2em;
+      margin: 5px 0;
+    }
+
+    #meaning {
+      font-size: 1.2em;
+      max-width: 600px;
+      margin: 5px auto 10px;
+    }
+
+    #announcement {
+      margin-top: 20px;
+      font-size: 1.5em;
+      background: #111;
+      color: lime;
+      padding: 10px;
+      border: 2px solid lime;
+      border-radius: 5px;
+      min-height: 50px;
+    }
+
+    #last-center {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+
+    .right-panel {
+      grid-area: settings;
+      background: #111;
+      padding: 20px;
+      border-left: 2px solid lime;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .mute-btn {
+      font-size: 1em;
+      padding: 10px;
+      cursor: pointer;
+      background: #111;
+      color: white;
+      border: 1px solid lime;
+      border-radius: 5px;
+    }
+
+    .time-bar {
+      grid-area: footer;
+      background: #111;
+      border-top: 2px solid lime;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+
+    #bigClock {
+      font-size: 2.5em;
+      color: lime;
+      letter-spacing: 2px;
+    }
+
+    #defcon {
+      display: none;
+    }
+
+    #flash-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: red;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    body.alarm-flash #flash-overlay {
+      animation: flash-red 1s infinite;
+    }
+
+    @keyframes flash-red {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.4; }
+    }
   </style>
 </head>
 <body>
-  <!-- ... full DEFCON status layout and script logic continues -->
+  <div id="flash-overlay"></div>
+
+  <!-- DEFCON Bar -->
+  <div class="defcon-bar">
+    <div class="defcon-light">5</div>
+    <div class="defcon-light">4</div>
+    <div class="defcon-light">3</div>
+    <div class="defcon-light">2</div>
+    <div class="defcon-light">1</div>
+  </div>
+
+  <!-- Left Info Panel -->
+  <div class="left-panel">
+    <div class="panel-title">📟 Alarm Codes</div>
+    <div class="panel-content">
+      0 – All systems normal<br />
+      1 – Unauthorized activity detected<br />
+      2 – Life-threatening emergency<br />
+      3 – Internal containment failure<br />
+      4 – Incoming unidentified object<br />
+      5 – Hostile forces in proximity<br />
+      6 – Facility systems compromised<br />
+      7 – Evacuation required<br />
+      8 – Intruder present<br />
+      9 – Security override breached<br />
+    </div>
+  </div>
+
+  <!-- Center Display -->
+  <div class="center-panel">
+    <div class="title">🚨 PROJECT DEFCON</div>
+    <div id="alarm">Loading...</div>
+    <div id="code">Code ...</div>
+    <div id="meaning">Loading description...</div>
+    <div id="announcement">No announcement</div>
+    <div id="last-center">Updated ...</div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
+  </div>
+
+  <!-- Bottom Clock -->
+  <div class="time-bar">
+    <div id="bigClock">--:--:--</div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <!-- Logic -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
+      authDomain: "project-defcon.firebaseapp.com",
+      databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "project-defcon",
+      storageBucket: "project-defcon.appspot.com",
+      messagingSenderId: "376651705241",
+      appId: "1:376651705241:web:8cace3386f1c96bc790108"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const statusRef = db.ref('/');
+    const announcementRef = db.ref('/announcement');
+
+    const audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
+    audio.loop = true;
+
+    const defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
+    const codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
+    const announceSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/anouncmentadmin.mp3");
+    announceSound.volume = 0.5;
+
+    const synth = window.speechSynthesis;
+    let lastAnnouncement = "";
+
+    let isMuted = false;
+    let previousDefcon = null;
+    let previousCode = null;
+
+    function playAlarm() {
+      if (!isMuted) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
+    }
+
+    function updateAlarm(data) {
+      const lights = document.querySelectorAll('.defcon-light');
+      lights.forEach((el, idx) => {
+        const level = 5 - idx;
+        el.style.backgroundColor = level === data.defcon ? ['#0000ff', '#66ff00', '#ffff00', '#ff9900', '#ff0000'][5 - level] : '#111';
+        el.style.color = level === data.defcon ? '#fff' : 'rgba(0,255,0,0.85)';
+      });
+
+      document.getElementById('code').textContent = `Code ${data.code}`;
+      document.getElementById('meaning').textContent = {
+        0: "All systems normal.",
+        1: "Alert: Unauthorized or suspicious activity detected.",
+        2: "Emergency: Life-threatening incident on-site.",
+        3: "Warning: Internal containment failure or breach.",
+        4: "Alert: Unidentified object approaching facility.",
+        5: "Danger: Hostile forces detected in proximity.",
+        6: "Critical: Facility systems compromised.",
+        7: "Evacuation: All personnel evacuate immediately.",
+        8: "Intrusion: Intruder detected within perimeter.",
+        9: "Compromise: Security override breached."
+      }[data.code] || "Unknown";
+
+      document.getElementById('alarm').textContent =
+        data.alarmActive ? '🔴 ALARM ACTIVE' :
+        data.code > 0 ? '🟡 CODE ACTIVE' :
+        '🟢 All Clear';
+
+      document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
+
+      if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
+        defconChangeSound.play().catch(() => {});
+      }
+      previousDefcon = data.defcon;
+
+      if (previousCode !== null && previousCode !== data.code && !isMuted) {
+        codeChangeSound.play().catch(() => {});
+      }
+      previousCode = data.code;
+
+      document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
+      document.body.classList.add(`defcon-${data.defcon}`);
+
+      if (data.alarmActive) {
+        document.body.classList.add("alarm-flash");
+        playAlarm();
+      } else {
+        document.body.classList.remove("alarm-flash");
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+
+    statusRef.on('value', snap => updateAlarm(snap.val()));
+
+    announcementRef.on('value', snap => {
+      const text = snap.val();
+      const display = document.getElementById("announcement");
+
+      if (text === ":clear" || !text) {
+        display.textContent = "No announcement";
+        lastAnnouncement = "";
+        return;
+      }
+
+      if (text !== lastAnnouncement) {
+        display.textContent = text;
+        lastAnnouncement = text;
+
+        announceSound.play().then(() => {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.rate = 0.8;
+          utter.volume = 1;
+          utter.lang = "en-US";
+          synth.speak(utter);
+        });
+      }
+    });
+
+    window.toggleMute = () => {
+      isMuted = !isMuted;
+      document.getElementById("muteBtn").textContent = isMuted ? "🔇 Unmute Alarm" : "🔊 Mute Alarm";
+      if (!isMuted && window.__alarmActive) playAlarm();
+      if (isMuted) audio.pause();
+    };
+
+    setInterval(() => {
+      document.getElementById("bigClock").textContent = new Date().toLocaleTimeString();
+    }, 1000);
+  </script>
 </body>
 </html>
