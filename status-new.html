@@ -145,7 +145,6 @@
       display: none;
     }
 
-    /* Flashing overlay */
     #flash-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -179,11 +178,18 @@
 
   <!-- Left Info Panel -->
   <div class="left-panel">
-    <div class="panel-title">🛰 Info panel</div>
+    <div class="panel-title">📟 Alarm Codes</div>
     <div class="panel-content">
-      Base info:<br />
-      Respond to alerts immediately.<br />
-      Credits to matesaman9910 and 111Vojta.<br />
+      0 – All systems normal<br />
+      1 – Unauthorized activity detected<br />
+      2 – Life-threatening emergency<br />
+      3 – Internal containment failure<br />
+      4 – Incoming unidentified object<br />
+      5 – Hostile forces in proximity<br />
+      6 – Facility systems compromised<br />
+      7 – Evacuation required<br />
+      8 – Intruder present<br />
+      9 – Security override breached<br />
     </div>
   </div>
 
@@ -241,16 +247,16 @@
     }, { once: true });
 
     const codeDescriptions = {
-      0: "No code active. All systems normal.",
-      1: "Personnel in danger",
-      2: "Medical emergency",
-      3: "Base lockdown",
-      4: "All personnel report to Tactical point",
-      5: "Combat in progress",
-      6: "Raid imminent",
-      7: "Evacuation protocol",
-      8: "Intruder alert",
-      9: "Compromised personnel"
+      0: "All systems normal.",
+      1: "Alert: Unauthorized or suspicious activity detected.",
+      2: "Emergency: Life-threatening incident on-site.",
+      3: "Warning: Internal containment failure or breach.",
+      4: "Alert: Unidentified object approaching facility.",
+      5: "Danger: Hostile forces detected in proximity.",
+      6: "Critical: Facility systems compromised.",
+      7: "Evacuation: All personnel evacuate immediately.",
+      8: "Intrusion: Intruder detected within perimeter.",
+      9: "Compromise: Security override breached."
     };
 
     const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
