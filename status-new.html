@@ -95,14 +95,6 @@
       margin: 20px 0 10px;
     }
 
-    #announcement {
-      font-size: 1.8em;
-      color: yellow;
-      padding: 10px;
-      margin-top: 10px;
-      white-space: pre-wrap;
-    }
-
     #code {
       font-size: 2em;
       margin: 5px 0;
@@ -112,6 +104,16 @@
       font-size: 1.2em;
       max-width: 600px;
       margin: 5px auto 10px;
+    }
+
+    #announcement {
+      font-size: 1.3em;
+      margin: 20px 0 10px;
+      color: #0f0;
+      border: 1px dashed lime;
+      padding: 10px;
+      background: rgba(0,255,0,0.05);
+      text-shadow: 0 0 5px #0f0;
     }
 
     #last-center {
@@ -154,6 +156,10 @@
       font-size: 2.5em;
       color: lime;
       letter-spacing: 2px;
+    }
+
+    #defcon {
+      display: none;
     }
 
     #flash-overlay {
@@ -203,11 +209,12 @@
   </div>
 
   <div class="center-panel">
+    <div id="defcon"></div>
     <div class="title">🚨 PROJECT DEFCON</div>
     <div id="alarm">Loading...</div>
-    <div id="announcement"></div>
     <div id="code">Code ...</div>
     <div id="meaning">Loading description...</div>
+    <div id="announcement"></div>
     <div id="last-center">Updated ...</div>
   </div>
 
@@ -221,13 +228,14 @@
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
       authDomain: "project-defcon.firebaseapp.com",
       databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "project-defcon",
-      storageBucket: "project-defcon.appspot.com",
+      storageBucket: "project-defcon.firebasestorage.app",
       messagingSenderId: "376651705241",
       appId: "1:376651705241:web:8cace3386f1c96bc790108",
       measurementId: "G-1PY12F8HSY"
@@ -240,6 +248,7 @@
 
     let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
     audio.loop = true;
+
     let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
     let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
 
@@ -247,6 +256,12 @@
     let previousDefcon = null;
     let previousCode = null;
     let lastAnnouncement = "";
+
+    document.body.addEventListener("click", () => {
+      [audio, defconChangeSound, codeChangeSound].forEach(a => {
+        a.play().then(() => a.pause()).catch(() => {});
+      });
+    }, { once: true });
 
     const codeDescriptions = {
       0: "All systems normal.",
@@ -261,6 +276,8 @@
       9: "Compromise: Security override breached."
     };
 
+    const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
+
     function playAlarm() {
       audio.pause();
       audio.currentTime = 0;
@@ -268,8 +285,22 @@
     }
 
     function updateAlarm(data) {
+      document.querySelectorAll('.defcon-light').forEach((el, idx) => {
+        const defconLevel = 5 - idx;
+        if (defconLevel === data.defcon) {
+          el.style.backgroundColor = defconColors[5 - defconLevel];
+          el.style.color = (data.defcon === 1 || data.defcon === 5) ? '#fff' : '#000';
+          el.style.textShadow = "0 0 5px #000, 0 0 10px #000";
+        } else {
+          el.style.backgroundColor = '#111';
+          el.style.color = 'rgba(0, 255, 0, 0.85)';
+          el.style.textShadow = "0 0 5px #0f0, 0 0 10px #0f0";
+        }
+      });
+
       document.getElementById('code').textContent = `Code ${data.code}`;
       document.getElementById('meaning').textContent = codeDescriptions[data.code] || "Unknown Code";
+      document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
 
       const alarmEl = document.getElementById('alarm');
       if (data.alarmActive) {
@@ -280,28 +311,18 @@
         alarmEl.textContent = '🟢 All Clear';
       }
 
-      document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
-
-      document.querySelectorAll('.defcon-light').forEach((el, idx) => {
-        const defconLevel = 5 - idx;
-        if (defconLevel === data.defcon) {
-          el.style.backgroundColor = ['#0000ff','#66ff00','#ffff00','#ff9900','#ff0000'][5 - defconLevel];
-          el.style.color = (data.defcon === 1 || data.defcon === 5) ? '#fff' : '#000';
-        } else {
-          el.style.backgroundColor = '#111';
-          el.style.color = 'rgba(0, 255, 0, 0.85)';
-        }
-      });
-
-      document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
-      document.body.classList.add(`defcon-${data.defcon}`);
-
       if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
         defconChangeSound.pause(); defconChangeSound.currentTime = 0; defconChangeSound.play();
       }
+      previousDefcon = data.defcon;
+
       if (previousCode !== null && previousCode !== data.code && !isMuted) {
         codeChangeSound.pause(); codeChangeSound.currentTime = 0; codeChangeSound.play();
       }
+      previousCode = data.code;
+
+      document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
+      document.body.classList.add(`defcon-${data.defcon}`);
 
       if (data.alarmActive) {
         document.body.classList.add("alarm-flash");
@@ -311,11 +332,10 @@
         audio.pause(); audio.currentTime = 0;
       }
 
-      previousDefcon = data.defcon;
-      previousCode = data.code;
+      window.__alarmActive = data.alarmActive;
     }
 
-    statusRef.on('value', snapshot => updateAlarm(snapshot.val()));
+    statusRef.on('value', snap => updateAlarm(snap.val()));
 
     announceRef.on('value', (snap) => {
       const text = snap.val();
@@ -328,14 +348,19 @@
 
       if (text !== lastAnnouncement) {
         box.textContent = text;
+
         if (!isMuted) {
           const utter = new SpeechSynthesisUtterance(text);
-          utter.volume = 1;         // Max volume
-          utter.rate = 0.75;        // Slower speed
-          utter.pitch = 1;
+          utter.volume = 1;
+          utter.rate = 0.7;
+          utter.lang = "en-US";
+          const voice = speechSynthesis.getVoices().find(v => v.lang.startsWith("en"));
+          if (voice) utter.voice = voice;
+
           speechSynthesis.cancel();
           speechSynthesis.speak(utter);
         }
+
         lastAnnouncement = text;
       }
     });
@@ -344,17 +369,12 @@
       isMuted = !isMuted;
       document.getElementById("muteBtn").textContent = isMuted ? "🔇 Unmute Alarm" : "🔊 Mute Alarm";
       if (window.__alarmActive) {
-        if (isMuted) {
-          audio.pause();
-        } else {
-          playAlarm();
-        }
+        isMuted ? audio.pause() : playAlarm();
       }
     };
 
     setInterval(() => {
-      const now = new Date();
-      document.getElementById("bigClock").textContent = now.toLocaleTimeString();
+      document.getElementById("bigClock").textContent = new Date().toLocaleTimeString();
     }, 1000);
   </script>
 </body>
