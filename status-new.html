@@ -43,7 +43,7 @@
       background: #111;
       border: 2px solid #0f0;
       border-radius: 10px;
-      transition: background 0.3s;
+      transition: background 0.3s, color 0.3s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -174,7 +174,7 @@
 <body>
   <div id="flash-overlay"></div>
 
-  <!-- DEFCON Bar with Numbers Inside -->
+  <!-- DEFCON Bar with Numbers -->
   <div class="defcon-bar">
     <div class="defcon-light">5</div>
     <div class="defcon-light">4</div>
@@ -243,6 +243,7 @@
 
     let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
     audio.loop = true;
+
     let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
     let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
 
@@ -283,7 +284,15 @@
 
       document.querySelectorAll('.defcon-light').forEach((el, idx) => {
         const defconLevel = 5 - idx;
-        el.style.backgroundColor = (defconLevel === data.defcon) ? defconColors[5 - defconLevel] : '#111';
+        if (defconLevel === data.defcon) {
+          el.style.backgroundColor = defconColors[5 - defconLevel];
+          el.style.color = (data.defcon === 1 || data.defcon === 5) ? '#fff' : '#000';
+          el.style.textShadow = "0 0 5px #000, 0 0 10px #000";
+        } else {
+          el.style.backgroundColor = '#111';
+          el.style.color = 'rgba(0, 255, 0, 0.85)';
+          el.style.textShadow = "0 0 5px #0f0, 0 0 10px #0f0";
+        }
       });
 
       document.getElementById('code').textContent = `Code ${data.code}`;
