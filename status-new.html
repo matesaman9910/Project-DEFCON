@@ -2,384 +2,275 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Project DEFCON - Status</title>
+  <title>DEFCON CRT Control Panel</title>
   <style>
-    body {
-      margin: 0;
-      font-family: monospace;
-      color: white;
-      display: grid;
-      grid-template-areas:
-        "defcon defcon defcon"
-        "info center settings"
-        "footer footer footer";
-      grid-template-columns: 300px 1fr 300px;
-      grid-template-rows: 100px 1fr 60px;
-      height: 100vh;
-      background-color: #001f00;
-      transition: background-color 0.8s ease;
+    * {
+      box-sizing: border-box;
+      font-family: "Courier New", monospace;
     }
-
-    body.defcon-1 { background-color: #330000; }
-    body.defcon-2 { background-color: #332200; }
-    body.defcon-3 { background-color: #333300; }
-    body.defcon-4 { background-color: #003300; }
-    body.defcon-5 { background-color: #000033; }
-
-    .defcon-bar {
-      grid-area: defcon;
+    body {
+      background: #000;
+      color: #0f0;
+      padding: 40px;
+      margin: 0;
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
       justify-content: center;
+      overflow: hidden;
+    }
+    .crt {
+      text-shadow: 0 0 2px #0f0, 0 0 10px #0f0;
+    }
+    .panel {
+      border: 2px solid #0f0;
+      padding: 30px;
+      width: 500px;
+      background: #001100;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      box-shadow: 0 0 30px #0f08;
+      position: relative;
+    }
+    .lever-wrapper,
+    .key-switch-wrapper {
+      display: flex;
       align-items: center;
       gap: 15px;
-      background: #111;
-      border-bottom: 2px solid lime;
-      padding: 10px;
     }
-
-    .defcon-light {
-      width: 60px;
-      height: 60px;
-      background: #111;
-      border: 2px solid #0f0;
-      border-radius: 10px;
-      transition: background 0.3s, color 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2em;
-      font-weight: bold;
-      color: rgba(0, 255, 0, 0.85);
-      text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+    .lever {
+      width: 100%;
+      height: 20px;
+      background: #0f03;
+      border: 1px solid #0f0;
     }
-
-    .left-panel {
-      grid-area: info;
-      background: #111;
-      padding: 20px;
-      border-right: 2px solid lime;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    .panel-title {
+    .display-box {
       font-size: 1.5em;
-      color: lime;
+      padding: 10px;
+      border: 1px solid #0f0;
+      background: #002200;
     }
-
-    .panel-content {
-      font-size: 1.1em;
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
     }
-
-    .center-panel {
-      grid-area: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 30px;
-      text-align: center;
-    }
-
-    .title {
-      font-size: 3em;
-      color: lime;
-      margin: 10px 0;
-    }
-
-    #alarm {
-      font-size: 3em;
-      font-weight: bold;
-      margin: 20px 0 10px;
-    }
-
-    #code {
-      font-size: 2em;
-      margin: 5px 0;
-    }
-
-    #meaning {
+    .keypad button {
+      padding: 15px;
       font-size: 1.2em;
-      max-width: 600px;
-      margin: 5px auto 10px;
-    }
-
-    #announcement {
-      font-size: 1.3em;
-      margin: 20px 0 10px;
+      background: #111;
       color: #0f0;
-      border: 1px dashed lime;
-      padding: 10px;
-      background: rgba(0,255,0,0.05);
-      text-shadow: 0 0 5px #0f0;
-    }
-
-    #last-center {
-      font-size: 0.9em;
-      color: #aaa;
-    }
-
-    .right-panel {
-      grid-area: settings;
-      background: #111;
-      padding: 20px;
-      border-left: 2px solid lime;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    .mute-btn {
-      font-size: 1em;
-      padding: 10px;
-      cursor: pointer;
-      background: #111;
-      color: white;
-      border: 1px solid lime;
+      border: 2px solid #0f0;
       border-radius: 5px;
+      cursor: pointer;
     }
-
-    .time-bar {
-      grid-area: footer;
-      background: #111;
-      border-top: 2px solid lime;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 10px;
+    .key {
+      width: 30px;
+      height: 60px;
+      background: #0f0;
+      transform-origin: center;
+      transition: transform 0.4s ease;
+      border-radius: 5px;
+      cursor: pointer;
     }
-
-    #bigClock {
-      font-size: 2.5em;
-      color: lime;
-      letter-spacing: 2px;
+    .update-btn {
+      background: #004400;
+      border: 1px solid #0f0;
+      color: #0f0;
+      padding: 12px;
+      font-size: 1.1em;
+      cursor: pointer;
+      width: 100%;
     }
-
-    #defcon {
-      display: none;
+    .status {
+      font-size: 1.2em;
     }
-
-    #flash-overlay {
+    #loginOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-color: red;
-      opacity: 0;
-      pointer-events: none;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      color: lime;
+    }
+    #loginOverlay input {
+      margin: 10px;
+      padding: 10px;
+      background: #111;
+      border: 1px solid lime;
+      color: lime;
+    }
+    #logoutBtn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #001100;
+      color: lime;
+      border: 1px solid lime;
+      padding: 8px 12px;
+      font-size: 1em;
+      cursor: pointer;
       z-index: 9999;
     }
-
-    body.alarm-flash #flash-overlay {
-      animation: flash-red 1s infinite;
-    }
-
-    @keyframes flash-red {
-      0%, 100% { opacity: 0; }
-      50% { opacity: 0.4; }
+    #announceInput {
+      margin-top: 10px;
+      padding: 10px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <div id="flash-overlay"></div>
 
-  <div class="defcon-bar">
-    <div class="defcon-light">5</div>
-    <div class="defcon-light">4</div>
-    <div class="defcon-light">3</div>
-    <div class="defcon-light">2</div>
-    <div class="defcon-light">1</div>
+  <div id="loginOverlay">
+    <h2>🔐 Admin Login</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <div id="loginError" style="color:red;margin-top:10px;"></div>
   </div>
 
-  <div class="left-panel">
-    <div class="panel-title">📟 Alarm Codes</div>
-    <div class="panel-content">
-      0 – All systems normal<br />
-      1 – Unauthorized activity detected<br />
-      2 – Life-threatening emergency<br />
-      3 – Internal containment failure<br />
-      4 – Incoming unidentified object<br />
-      5 – Hostile forces in proximity<br />
-      6 – Facility systems compromised<br />
-      7 – Evacuation required<br />
-      8 – Intruder present<br />
-      9 – Security override breached<br />
+  <button id="logoutBtn" onclick="logout()" style="display:none">🚪 Logout</button>
+
+  <div class="panel crt scanlines">
+    <h1 class="crt">🖥 DEFCON CRT Control</h1>
+
+    <div class="lever-wrapper">
+      <label for="defconLever">DEFCON Level:</label>
+      <input type="range" id="defconLever" min="1" max="5" value="3" class="lever" oninput="setDefcon(this.value)">
+      <div id="defconDisplay" class="display-box">DEFCON 3</div>
     </div>
+
+    <div>
+      <label>Enter Alarm Code:</label>
+      <div id="codeDisplay" class="display-box">Code 0</div>
+      <div class="keypad">
+        <button onclick="keypadPress(1)">1</button>
+        <button onclick="keypadPress(2)">2</button>
+        <button onclick="keypadPress(3)">3</button>
+        <button onclick="keypadPress(4)">4</button>
+        <button onclick="keypadPress(5)">5</button>
+        <button onclick="keypadPress(6)">6</button>
+        <button onclick="keypadPress(7)">7</button>
+        <button onclick="keypadPress(8)">8</button>
+        <button onclick="keypadPress(9)">9</button>
+        <div></div>
+        <button onclick="keypadPress(0)">0</button>
+        <div></div>
+      </div>
+    </div>
+
+    <div class="key-switch-wrapper">
+      <div id="keySwitch" class="key" onclick="toggleKey()"></div>
+      <div id="alarmStatus" class="display-box">🔈 ALARM OFF</div>
+    </div>
+
+    <input id="announceInput" placeholder="📢 Type announcement..." />
+    <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
+    <div id="status" class="status">Awaiting update...</div>
   </div>
 
-  <div class="center-panel">
-    <div id="defcon"></div>
-    <div class="title">🚨 PROJECT DEFCON</div>
-    <div id="alarm">Loading...</div>
-    <div id="code">Code ...</div>
-    <div id="meaning">Loading description...</div>
-    <div id="announcement"></div>
-    <div id="last-center">Updated ...</div>
-  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+    import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
-  <div class="right-panel">
-    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Mute Alarm</button>
-  </div>
-
-  <div class="time-bar">
-    <div id="bigClock">--:--:--</div>
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
       authDomain: "project-defcon.firebaseapp.com",
       databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "project-defcon",
-      storageBucket: "project-defcon.firebasestorage.app",
+      storageBucket: "project-defcon.appspot.com",
       messagingSenderId: "376651705241",
-      appId: "1:376651705241:web:8cace3386f1c96bc790108",
-      measurementId: "G-1PY12F8HSY"
+      appId: "1:376651705241:web:8cace3386f1c96bc790108"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const statusRef = db.ref('/');
-    const announceRef = db.ref('/announcement');
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
 
-    let audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
-    audio.loop = true;
+    let defconLevel = 3;
+    let alarmCode = 0;
+    let alarmActive = false;
+    let sessionKey = null;
 
-    let defconChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/defcon.mp3");
-    let codeChangeSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/annaouncmnetsound.mp3");
+    onAuthStateChanged(auth, async (user) => {
+      const panel = document.querySelector(".panel");
+      const overlay = document.getElementById("loginOverlay");
+      if (user) {
+        panel.style.display = "flex";
+        overlay.style.display = "none";
+        sessionKey = Math.random().toString(36).substr(2);
+        const sessionRef = ref(db, `/sessions/${user.uid}`);
+        await set(sessionRef, { sessionKey, timestamp: Date.now() });
 
-    let announceSound = new Audio("https://file.garden/aACuwggY3QmuIi9B/anouncmentadmin.mp3");
-    announceSound.volume = 0.5;
-
-    let isMuted = false;
-    let previousDefcon = null;
-    let previousCode = null;
-    let lastAnnouncement = "";
-
-    document.body.addEventListener("click", () => {
-      [audio, defconChangeSound, codeChangeSound, announceSound].forEach(a => {
-        a.play().then(() => a.pause()).catch(() => {});
-      });
-    }, { once: true });
-
-    const codeDescriptions = {
-      0: "All systems normal.",
-      1: "Alert: Unauthorized or suspicious activity detected.",
-      2: "Emergency: Life-threatening incident on-site.",
-      3: "Warning: Internal containment failure or breach.",
-      4: "Alert: Unidentified object approaching facility.",
-      5: "Danger: Hostile forces detected in proximity.",
-      6: "Critical: Facility systems compromised.",
-      7: "Evacuation: All personnel evacuate immediately.",
-      8: "Intrusion: Intruder detected within perimeter.",
-      9: "Compromise: Security override breached."
-    };
-
-    const defconColors = ["#0000ff", "#66ff00", "#ffff00", "#ff9900", "#ff0000"];
-
-    function playAlarm() {
-      audio.pause(); audio.currentTime = 0;
-      audio.play().catch(() => {});
-    }
-
-    function updateAlarm(data) {
-      document.querySelectorAll('.defcon-light').forEach((el, idx) => {
-        const defconLevel = 5 - idx;
-        if (defconLevel === data.defcon) {
-          el.style.backgroundColor = defconColors[5 - defconLevel];
-          el.style.color = (data.defcon === 1 || data.defcon === 5) ? '#fff' : '#000';
-          el.style.textShadow = "0 0 5px #000, 0 0 10px #000";
-        } else {
-          el.style.backgroundColor = '#111';
-          el.style.color = 'rgba(0, 255, 0, 0.85)';
-          el.style.textShadow = "0 0 5px #0f0, 0 0 10px #0f0";
-        }
-      });
-
-      document.getElementById('code').textContent = `Code ${data.code}`;
-      document.getElementById('meaning').textContent = codeDescriptions[data.code] || "Unknown Code";
-      document.getElementById('last-center').textContent = new Date(data.lastUpdated).toLocaleString();
-
-      const alarmEl = document.getElementById('alarm');
-      if (data.alarmActive) {
-        alarmEl.textContent = '🔴 ALARM ACTIVE';
-      } else if (data.code > 0) {
-        alarmEl.textContent = `🟡 ${codeDescriptions[data.code] || 'Code Active'}`;
+        setInterval(async () => {
+          const snap = await getDatabase(app).ref(`/sessions/${user.uid}`).get();
+          if (!snap.exists() || snap.val().sessionKey !== sessionKey) {
+            alert("You have been logged out due to another login.");
+            signOut(auth);
+          }
+        }, 5000);
       } else {
-        alarmEl.textContent = '🟢 All Clear';
-      }
-
-      if (previousDefcon !== null && previousDefcon !== data.defcon && !isMuted) {
-        defconChangeSound.pause(); defconChangeSound.currentTime = 0; defconChangeSound.play();
-      }
-      previousDefcon = data.defcon;
-
-      if (previousCode !== null && previousCode !== data.code && !isMuted) {
-        codeChangeSound.pause(); codeChangeSound.currentTime = 0; codeChangeSound.play();
-      }
-      previousCode = data.code;
-
-      document.body.classList.remove(...Array.from({ length: 5 }, (_, i) => `defcon-${i + 1}`));
-      document.body.classList.add(`defcon-${data.defcon}`);
-
-      if (data.alarmActive) {
-        document.body.classList.add("alarm-flash");
-        if (!isMuted) playAlarm();
-      } else {
-        document.body.classList.remove("alarm-flash");
-        audio.pause(); audio.currentTime = 0;
-      }
-
-      window.__alarmActive = data.alarmActive;
-    }
-
-    statusRef.on('value', snap => updateAlarm(snap.val()));
-
-    announceRef.on('value', snap => {
-      const text = snap.val();
-      const box = document.getElementById("announcement");
-
-      if (!text || text === ":clear") {
-        box.textContent = "";
-        return;
-      }
-
-      if (text !== lastAnnouncement) {
-        box.textContent = text;
-        lastAnnouncement = text;
-
-        if (!isMuted) {
-          announceSound.pause(); announceSound.currentTime = 0;
-          announceSound.play().then(() => {
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.volume = 1;
-            utter.rate = 0.7;
-            utter.lang = "en-US";
-            const voice = speechSynthesis.getVoices().find(v => v.lang.startsWith("en"));
-            if (voice) utter.voice = voice;
-
-            speechSynthesis.cancel();
-            speechSynthesis.speak(utter);
-          }).catch(() => {});
-        }
+        panel.style.display = "none";
+        overlay.style.display = "flex";
       }
     });
 
-    window.toggleMute = () => {
-      isMuted = !isMuted;
-      document.getElementById("muteBtn").textContent = isMuted ? "🔇 Unmute Alarm" : "🔊 Mute Alarm";
-      if (window.__alarmActive) {
-        isMuted ? audio.pause() : playAlarm();
-      }
+    window.login = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password).catch(e => {
+        document.getElementById("loginError").textContent = e.message;
+      });
     };
 
-    setInterval(() => {
-      document.getElementById("bigClock").textContent = new Date().toLocaleTimeString();
-    }, 1000);
+    window.logout = () => {
+      signOut(auth);
+    };
+
+    function updateFirebase() {
+      const now = new Date().toISOString();
+      const announcement = document.getElementById("announceInput").value.trim();
+      if (announcement.length > 0) {
+        set(ref(db, "/announcement"), { text: announcement, timestamp: serverTimestamp() });
+      }
+
+      set(ref(db, "/"), {
+        defcon: defconLevel,
+        code: alarmCode,
+        alarmActive,
+        lastUpdated: now
+      });
+
+      document.getElementById("status").textContent = "✅ Updated at " + new Date(now).toLocaleTimeString();
+    }
+
+    window.setDefcon = (level) => {
+      defconLevel = parseInt(level);
+      document.getElementById("defconDisplay").textContent = `DEFCON ${defconLevel}`;
+    };
+
+    window.keypadPress = (n) => {
+      alarmCode = parseInt(n);
+      document.getElementById("codeDisplay").textContent = `Code ${alarmCode}`;
+    };
+
+    window.toggleKey = () => {
+      alarmActive = !alarmActive;
+      const key = document.getElementById("keySwitch");
+      key.style.transform = alarmActive ? "rotate(90deg)" : "rotate(0deg)";
+      document.getElementById("alarmStatus").textContent = alarmActive ? "🔊 ALARM ON" : "🔈 ALARM OFF";
+    };
+
+    window.updateStatus = updateFirebase;
   </script>
 </body>
 </html>
