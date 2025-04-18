@@ -1,97 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>DEFCON CRT Control Panel</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
-      authDomain: "project-defcon.firebaseapp.com",
-      databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "project-defcon",
-      storageBucket: "project-defcon.appspot.com",
-      messagingSenderId: "376651705241",
-      appId: "1:376651705241:web:8cace3386f1c96bc790108",
-      measurementId: "G-1PY12F8HSY"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
-
-    onAuthStateChanged(auth, (user) => {
-      document.querySelector(".panel").style.display = user ? "flex" : "none";
-      document.getElementById("loginOverlay").style.display = user ? "none" : "flex";
-      document.getElementById("logoutBtn").style.display = user ? "block" : "none";
-    });
-
-    window.login = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password).catch(e => {
-        document.getElementById("loginError").textContent = e.message;
-      });
-    };
-
-    window.logout = () => {
-      signOut(auth);
-    };
-
-    let defconLevel = 5;
-    let alarmCode = 0;
-    let alarmActive = false;
-
-    function updateFirebase() {
-      const now = new Date().toISOString();
-      set(ref(db, "/"), {
-        defcon: defconLevel,
-        code: alarmCode,
-        alarmActive,
-        lastUpdated: now
-      });
-      document.getElementById("status").textContent = "✅ Updated at " + new Date(now).toLocaleTimeString();
-    }
-
-    window.setDefcon = (level) => {
-      defconLevel = parseInt(level);
-      document.getElementById("defconDisplay").textContent = `DEFCON ${defconLevel}`;
-    };
-
-    window.keypadPress = (n) => {
-      alarmCode = parseInt(n);
-      document.getElementById("codeDisplay").textContent = `Code ${alarmCode}`;
-    };
-
-    window.toggleKey = () => {
-      alarmActive = !alarmActive;
-      const key = document.getElementById("keySwitch");
-      key.style.transform = alarmActive ? "rotate(90deg)" : "rotate(0deg)";
-      document.getElementById("alarmStatus").textContent = alarmActive ? "🔊 ALARM ON" : "🔈 ALARM OFF";
-    };
-
-    window.updateStatus = updateFirebase;
-
-    window.sendAnnouncement = () => {
-      const text = document.getElementById("announcementInput").value.trim();
-      const refPath = ref(db, "/announcement");
-      if (text === ":clear") {
-        set(refPath, "");
-      } else {
-        set(refPath, text);
-      }
-    };
-  </script>
-
   <style>
     * {
       box-sizing: border-box;
       font-family: "Courier New", monospace;
     }
-
     body {
       background: #000;
       color: #0f0;
@@ -104,28 +20,9 @@
       justify-content: center;
       overflow: hidden;
     }
-
     .crt {
       text-shadow: 0 0 2px #0f0, 0 0 10px #0f0;
     }
-
-    .scanlines::after {
-      content: "";
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(0, 255, 0, 0.05) 0px,
-        rgba(0, 255, 0, 0.05) 2px,
-        transparent 2px,
-        transparent 4px
-      );
-      pointer-events: none;
-    }
-
     .panel {
       border: 2px solid #0f0;
       padding: 30px;
@@ -137,34 +34,29 @@
       box-shadow: 0 0 30px #0f08;
       position: relative;
     }
-
     .lever-wrapper,
     .key-switch-wrapper {
       display: flex;
       align-items: center;
       gap: 15px;
     }
-
     .lever {
       width: 100%;
       height: 20px;
       background: #0f03;
       border: 1px solid #0f0;
     }
-
     .display-box {
       font-size: 1.5em;
       padding: 10px;
       border: 1px solid #0f0;
       background: #002200;
     }
-
     .keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
-
     .keypad button {
       padding: 15px;
       font-size: 1.2em;
@@ -174,7 +66,6 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     .key {
       width: 30px;
       height: 60px;
@@ -184,7 +75,6 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     .update-btn {
       background: #004400;
       border: 1px solid #0f0;
@@ -194,20 +84,27 @@
       cursor: pointer;
       width: 100%;
     }
-
     .status {
       font-size: 1.2em;
     }
-
-    #announcementInput {
-      width: 100%;
-      background: #001100;
+    #loginOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
       color: lime;
-      border: 1px solid #0f0;
-      padding: 10px;
-      font-family: inherit;
     }
-
+    #loginOverlay input {
+      margin: 10px;
+      padding: 10px;
+      background: #111;
+      border: 1px solid lime;
+      color: lime;
+    }
     #logoutBtn {
       position: fixed;
       top: 10px;
@@ -220,29 +117,18 @@
       cursor: pointer;
       z-index: 9999;
     }
-
-    #loginOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.95);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-      color: lime;
-    }
-
-    #loginOverlay input {
-      margin: 10px;
+    #announceInput {
+      margin-top: 10px;
       padding: 10px;
       background: #111;
-      border: 1px solid lime;
-      color: lime;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
+
   <div id="loginOverlay">
     <h2>🔐 Admin Login</h2>
     <input id="email" type="email" placeholder="Email" />
@@ -286,11 +172,105 @@
       <div id="alarmStatus" class="display-box">🔈 ALARM OFF</div>
     </div>
 
-    <input id="announcementInput" type="text" placeholder="Type announcement or :clear" />
-    <button class="update-btn" onclick="sendAnnouncement()">📢 SEND ANNOUNCEMENT</button>
-
+    <input id="announceInput" placeholder="📢 Type announcement..." />
     <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
     <div id="status" class="status">Awaiting update...</div>
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+    import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
+      authDomain: "project-defcon.firebaseapp.com",
+      databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "project-defcon",
+      storageBucket: "project-defcon.appspot.com",
+      messagingSenderId: "376651705241",
+      appId: "1:376651705241:web:8cace3386f1c96bc790108"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    let defconLevel = 3;
+    let alarmCode = 0;
+    let alarmActive = false;
+    let sessionKey = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      const panel = document.querySelector(".panel");
+      const overlay = document.getElementById("loginOverlay");
+      if (user) {
+        panel.style.display = "flex";
+        overlay.style.display = "none";
+        sessionKey = Math.random().toString(36).substr(2);
+        const sessionRef = ref(db, `/sessions/${user.uid}`);
+        await set(sessionRef, { sessionKey, timestamp: Date.now() });
+
+        setInterval(async () => {
+          const snap = await getDatabase(app).ref(`/sessions/${user.uid}`).get();
+          if (!snap.exists() || snap.val().sessionKey !== sessionKey) {
+            alert("You have been logged out due to another login.");
+            signOut(auth);
+          }
+        }, 5000);
+      } else {
+        panel.style.display = "none";
+        overlay.style.display = "flex";
+      }
+    });
+
+    window.login = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password).catch(e => {
+        document.getElementById("loginError").textContent = e.message;
+      });
+    };
+
+    window.logout = () => {
+      signOut(auth);
+    };
+
+    function updateFirebase() {
+      const now = new Date().toISOString();
+      const announcement = document.getElementById("announceInput").value.trim();
+      if (announcement.length > 0) {
+        set(ref(db, "/announcement"), { text: announcement, timestamp: serverTimestamp() });
+      }
+
+      set(ref(db, "/"), {
+        defcon: defconLevel,
+        code: alarmCode,
+        alarmActive,
+        lastUpdated: now
+      });
+
+      document.getElementById("status").textContent = "✅ Updated at " + new Date(now).toLocaleTimeString();
+    }
+
+    window.setDefcon = (level) => {
+      defconLevel = parseInt(level);
+      document.getElementById("defconDisplay").textContent = `DEFCON ${defconLevel}`;
+    };
+
+    window.keypadPress = (n) => {
+      alarmCode = parseInt(n);
+      document.getElementById("codeDisplay").textContent = `Code ${alarmCode}`;
+    };
+
+    window.toggleKey = () => {
+      alarmActive = !alarmActive;
+      const key = document.getElementById("keySwitch");
+      key.style.transform = alarmActive ? "rotate(90deg)" : "rotate(0deg)";
+      document.getElementById("alarmStatus").textContent = alarmActive ? "🔊 ALARM ON" : "🔈 ALARM OFF";
+    };
+
+    window.updateStatus = updateFirebase;
+  </script>
 </body>
 </html>
