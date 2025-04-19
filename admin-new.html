@@ -15,9 +15,9 @@
       getDatabase,
       ref,
       set,
-      get,
+      onDisconnect,
       onValue,
-      update
+      remove
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -37,10 +37,8 @@
     let defconLevel = 3;
     let alarmCode = 0;
     let alarmActive = false;
-    let sessionId = crypto.randomUUID();
-    let currentUserId = null;
+    let sessionRef = null;
 
-    // 👤 Auth and session logic
     onAuthStateChanged(auth, (user) => {
       const panel = document.querySelector(".panel");
       const overlay = document.getElementById("loginOverlay");
@@ -48,27 +46,22 @@
       if (user) {
         panel.style.display = "flex";
         overlay.style.display = "none";
-        currentUserId = user.uid;
 
-        const sessionRef = ref(db, "/sessions/" + user.uid);
-        set(sessionRef, { sessionId, timestamp: Date.now() });
+        const uid = user.uid;
+        sessionRef = ref(db, `/sessions/${uid}`);
+        const thisSessionId = Date.now().toString();
+        set(sessionRef, thisSessionId);
+        onDisconnect(sessionRef).remove();
 
         onValue(sessionRef, (snap) => {
-          if (snap.exists() && snap.val().sessionId !== sessionId) {
-            alert("⚠️ This account is logged in elsewhere. You will be logged out.");
+          if (snap.exists() && snap.val() !== thisSessionId) {
+            alert("⚠️ You were logged out due to another active session.");
             signOut(auth);
-            location.reload();
           }
         });
-
-        setInterval(() => {
-          update(sessionRef, { timestamp: Date.now() });
-        }, 5000);
-
       } else {
         panel.style.display = "none";
         overlay.style.display = "flex";
-        currentUserId = null;
       }
     });
 
@@ -82,18 +75,15 @@
 
     window.logout = () => {
       signOut(auth);
+      if (sessionRef) remove(sessionRef);
     };
 
-    function requireAuth(actionName) {
-      if (!auth.currentUser) {
-        alert(`❌ You must be logged in to ${actionName}. Please refresh the page and login.`);
-        return false;
-      }
-      return true;
-    }
-
     function updateFirebase() {
-      if (!requireAuth("update status")) return;
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Error: No login detected. Please refresh the page.");
+        return;
+      }
 
       const now = new Date().toISOString();
       set(ref(db, "/"), {
@@ -102,6 +92,7 @@
         alarmActive,
         lastUpdated: now
       });
+
       document.getElementById("status").textContent =
         "✅ Updated at " + new Date(now).toLocaleTimeString();
     }
@@ -128,7 +119,11 @@
     window.updateStatus = updateFirebase;
 
     window.sendAnnouncement = () => {
-      if (!requireAuth("send an announcement")) return;
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Error: No login detected. Please refresh the page.");
+        return;
+      }
 
       const text = document.getElementById("announcementInput").value.trim();
       set(ref(db, "/announcement"), text);
@@ -136,10 +131,7 @@
   </script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: "Courier New", monospace;
-    }
+    * { box-sizing: border-box; font-family: "Courier New", monospace; }
     body {
       background: #000;
       color: #0f0;
@@ -152,9 +144,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    .crt {
-      text-shadow: 0 0 2px #0f0, 0 0 10px #0f0;
-    }
+    .crt { text-shadow: 0 0 2px #0f0, 0 0 10px #0f0; }
     .panel {
       border: 2px solid #0f0;
       padding: 30px;
@@ -164,7 +154,6 @@
       flex-direction: column;
       gap: 20px;
       box-shadow: 0 0 30px #0f08;
-      position: relative;
     }
     .lever-wrapper, .key-switch-wrapper {
       display: flex;
@@ -215,9 +204,7 @@
       cursor: pointer;
       width: 100%;
     }
-    .status {
-      font-size: 1.2em;
-    }
+    .status { font-size: 1.2em; }
     #logoutBtn {
       position: fixed;
       top: 10px;
@@ -272,7 +259,6 @@
 </head>
 <body>
 
-  <!-- Login overlay -->
   <div id="loginOverlay">
     <h2>🔐 Admin Login</h2>
     <input id="email" type="email" placeholder="Email" />
@@ -281,10 +267,8 @@
     <div id="loginError" style="color:red;margin-top:10px;"></div>
   </div>
 
-  <!-- Logout Button -->
   <button id="logoutBtn" onclick="logout()">🚪 Logout</button>
 
-  <!-- Control Panel -->
   <div class="panel crt">
     <h1 class="crt">🖥 DEFCON CRT Control</h1>
 
@@ -298,7 +282,8 @@
       <label>Enter Alarm Code:</label>
       <div id="codeDisplay" class="display-box">Code 0</div>
       <div class="keypad">
-        ${[1,2,3,4,5,6,7,8,9,0].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
+        ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
+        <div></div><button onclick="keypadPress(0)">0</button><div></div>
       </div>
     </div>
 
