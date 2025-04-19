@@ -14,7 +14,10 @@
     import {
       getDatabase,
       ref,
-      set
+      set,
+      get,
+      onValue,
+      update
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -34,16 +37,38 @@
     let defconLevel = 3;
     let alarmCode = 0;
     let alarmActive = false;
+    let sessionId = crypto.randomUUID();
+    let currentUserId = null;
 
+    // 👤 Auth and session logic
     onAuthStateChanged(auth, (user) => {
       const panel = document.querySelector(".panel");
       const overlay = document.getElementById("loginOverlay");
+
       if (user) {
         panel.style.display = "flex";
         overlay.style.display = "none";
+        currentUserId = user.uid;
+
+        const sessionRef = ref(db, "/sessions/" + user.uid);
+        set(sessionRef, { sessionId, timestamp: Date.now() });
+
+        onValue(sessionRef, (snap) => {
+          if (snap.exists() && snap.val().sessionId !== sessionId) {
+            alert("⚠️ This account is logged in elsewhere. You will be logged out.");
+            signOut(auth);
+            location.reload();
+          }
+        });
+
+        setInterval(() => {
+          update(sessionRef, { timestamp: Date.now() });
+        }, 5000);
+
       } else {
         panel.style.display = "none";
         overlay.style.display = "flex";
+        currentUserId = null;
       }
     });
 
@@ -59,7 +84,17 @@
       signOut(auth);
     };
 
+    function requireAuth(actionName) {
+      if (!auth.currentUser) {
+        alert(`❌ You must be logged in to ${actionName}. Please refresh the page and login.`);
+        return false;
+      }
+      return true;
+    }
+
     function updateFirebase() {
+      if (!requireAuth("update status")) return;
+
       const now = new Date().toISOString();
       set(ref(db, "/"), {
         defcon: defconLevel,
@@ -93,6 +128,8 @@
     window.updateStatus = updateFirebase;
 
     window.sendAnnouncement = () => {
+      if (!requireAuth("send an announcement")) return;
+
       const text = document.getElementById("announcementInput").value.trim();
       set(ref(db, "/announcement"), text);
     };
@@ -129,8 +166,7 @@
       box-shadow: 0 0 30px #0f08;
       position: relative;
     }
-    .lever-wrapper,
-    .key-switch-wrapper {
+    .lever-wrapper, .key-switch-wrapper {
       display: flex;
       align-items: center;
       gap: 15px;
@@ -262,18 +298,7 @@
       <label>Enter Alarm Code:</label>
       <div id="codeDisplay" class="display-box">Code 0</div>
       <div class="keypad">
-        <button onclick="keypadPress(1)">1</button>
-        <button onclick="keypadPress(2)">2</button>
-        <button onclick="keypadPress(3)">3</button>
-        <button onclick="keypadPress(4)">4</button>
-        <button onclick="keypadPress(5)">5</button>
-        <button onclick="keypadPress(6)">6</button>
-        <button onclick="keypadPress(7)">7</button>
-        <button onclick="keypadPress(8)">8</button>
-        <button onclick="keypadPress(9)">9</button>
-        <div></div>
-        <button onclick="keypadPress(0)">0</button>
-        <div></div>
+        ${[1,2,3,4,5,6,7,8,9,0].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
       </div>
     </div>
 
