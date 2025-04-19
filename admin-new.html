@@ -5,20 +5,8 @@
   <title>DEFCON CRT Control Panel</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      onAuthStateChanged,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-    import {
-      getDatabase,
-      ref,
-      set,
-      onDisconnect,
-      onValue,
-      remove
-    } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
+    import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
@@ -37,7 +25,9 @@
     let defconLevel = 3;
     let alarmCode = 0;
     let alarmActive = false;
-    let sessionRef = null;
+    let sessionId = Math.random().toString(36).slice(2);
+
+    const sessionRef = ref(db, "/sessions");
 
     onAuthStateChanged(auth, (user) => {
       const panel = document.querySelector(".panel");
@@ -47,18 +37,29 @@
         panel.style.display = "flex";
         overlay.style.display = "none";
 
-        const uid = user.uid;
-        sessionRef = ref(db, `/sessions/${uid}`);
-        const thisSessionId = Date.now().toString();
-        set(sessionRef, thisSessionId);
-        onDisconnect(sessionRef).remove();
-
-        onValue(sessionRef, (snap) => {
-          if (snap.exists() && snap.val() !== thisSessionId) {
-            alert("⚠️ You were logged out due to another active session.");
-            signOut(auth);
-          }
+        // Register this session
+        set(ref(db, `/sessions/${user.uid}`), {
+          sessionId,
+          timestamp: serverTimestamp()
         });
+
+        // Enforce single session
+        setInterval(() => {
+          set(ref(db, `/sessions/${user.uid}/timestamp`), serverTimestamp());
+
+          // Check if someone replaced this session
+          set(ref(db, `/sessions/${user.uid}`)).then(() => {
+            // fetch it back
+            import("https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js").then(({ get }) => {
+              get(ref(db, `/sessions/${user.uid}`)).then(snapshot => {
+                if (snapshot.exists() && snapshot.val().sessionId !== sessionId) {
+                  alert("Another session was detected. You will be logged out.");
+                  signOut(auth);
+                }
+              });
+            });
+          });
+        }, 5000);
       } else {
         panel.style.display = "none";
         overlay.style.display = "flex";
@@ -75,26 +76,15 @@
 
     window.logout = () => {
       signOut(auth);
-      if (sessionRef) remove(sessionRef);
     };
 
-    function updateFirebase() {
+    function requireLogin(action) {
       const user = auth.currentUser;
       if (!user) {
-        alert("Error: No login detected. Please refresh the page.");
-        return;
+        alert("Error: Not logged in. Please refresh the page.");
+        return false;
       }
-
-      const now = new Date().toISOString();
-      set(ref(db, "/"), {
-        defcon: defconLevel,
-        code: alarmCode,
-        alarmActive,
-        lastUpdated: now
-      });
-
-      document.getElementById("status").textContent =
-        "✅ Updated at " + new Date(now).toLocaleTimeString();
+      return true;
     }
 
     window.setDefcon = (level) => {
@@ -111,46 +101,51 @@
       alarmActive = !alarmActive;
       const key = document.getElementById("keySwitch");
       key.style.transform = alarmActive ? "rotate(90deg)" : "rotate(0deg)";
-      document.getElementById("alarmStatus").textContent = alarmActive
-        ? "🔊 ALARM ON"
-        : "🔈 ALARM OFF";
+      document.getElementById("alarmStatus").textContent = alarmActive ? "🔊 ALARM ON" : "🔈 ALARM OFF";
     };
 
-    window.updateStatus = updateFirebase;
+    window.updateStatus = () => {
+      if (!requireLogin()) return;
+      const now = new Date().toISOString();
+      set(ref(db, "/"), {
+        defcon: defconLevel,
+        code: alarmCode,
+        alarmActive,
+        lastUpdated: now
+      });
+      document.getElementById("status").textContent = "✅ Updated at " + new Date(now).toLocaleTimeString();
+    };
 
     window.sendAnnouncement = () => {
-      const user = auth.currentUser;
-      if (!user) {
-        alert("Error: No login detected. Please refresh the page.");
-        return;
-      }
-
+      if (!requireLogin()) return;
       const text = document.getElementById("announcementInput").value.trim();
       set(ref(db, "/announcement"), text);
     };
   </script>
 
   <style>
-    * { box-sizing: border-box; font-family: "Courier New", monospace; }
+    * {
+      box-sizing: border-box;
+      font-family: "Courier New", monospace;
+    }
     body {
       background: #000;
       color: #0f0;
-      padding: 40px;
-      margin: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      height: 100vh;
       justify-content: center;
-      overflow: hidden;
+      height: 100vh;
+      margin: 0;
     }
-    .crt { text-shadow: 0 0 2px #0f0, 0 0 10px #0f0; }
+    .crt {
+      text-shadow: 0 0 2px #0f0, 0 0 10px #0f0;
+    }
     .panel {
-      border: 2px solid #0f0;
-      padding: 30px;
       width: 500px;
+      padding: 30px;
+      border: 2px solid #0f0;
       background: #001100;
-      display: flex;
+      display: none;
       flex-direction: column;
       gap: 20px;
       box-shadow: 0 0 30px #0f08;
@@ -178,8 +173,8 @@
       gap: 10px;
     }
     .keypad button {
-      padding: 15px;
       font-size: 1.2em;
+      padding: 15px;
       background: #111;
       color: #0f0;
       border: 2px solid #0f0;
@@ -190,8 +185,8 @@
       width: 30px;
       height: 60px;
       background: #0f0;
-      transform-origin: center;
       transition: transform 0.4s ease;
+      transform-origin: center;
       border-radius: 5px;
       cursor: pointer;
     }
@@ -202,9 +197,26 @@
       padding: 12px;
       font-size: 1.1em;
       cursor: pointer;
+    }
+    .announcement-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .announcement-wrapper input {
+      background: #111;
+      border: 1px solid lime;
+      padding: 8px;
+      color: lime;
       width: 100%;
     }
-    .status { font-size: 1.2em; }
+    .announcement-wrapper button {
+      background: #110000;
+      border: 1px solid red;
+      color: red;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
     #logoutBtn {
       position: fixed;
       top: 10px;
@@ -235,72 +247,54 @@
       border: 1px solid lime;
       color: lime;
     }
-    .announcement-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .announcement-wrapper input {
-      background: #111;
-      border: 1px solid lime;
-      padding: 8px;
-      color: lime;
-      width: 100%;
-    }
-    .announcement-wrapper button {
-      background: #110000;
-      border: 1px solid #f00;
-      color: #f00;
-      padding: 6px 10px;
-      cursor: pointer;
-      width: fit-content;
-    }
   </style>
 </head>
 <body>
 
-  <div id="loginOverlay">
-    <h2>🔐 Admin Login</h2>
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <div id="loginError" style="color:red;margin-top:10px;"></div>
+<div id="loginOverlay">
+  <h2>🔐 Admin Login</h2>
+  <input id="email" type="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <div id="loginError" style="color:red;margin-top:10px;"></div>
+</div>
+
+<button id="logoutBtn" onclick="logout()">🚪 Logout</button>
+
+<div class="panel crt">
+  <h1 class="crt">🖥 DEFCON CRT Control</h1>
+
+  <div class="lever-wrapper">
+    <label for="defconLever">DEFCON Level:</label>
+    <input type="range" id="defconLever" min="1" max="5" value="3" class="lever" oninput="setDefcon(this.value)">
+    <div id="defconDisplay" class="display-box">DEFCON 3</div>
   </div>
 
-  <button id="logoutBtn" onclick="logout()">🚪 Logout</button>
-
-  <div class="panel crt">
-    <h1 class="crt">🖥 DEFCON CRT Control</h1>
-
-    <div class="lever-wrapper">
-      <label for="defconLever">DEFCON Level:</label>
-      <input type="range" id="defconLever" min="1" max="5" value="3" class="lever" oninput="setDefcon(this.value)">
-      <div id="defconDisplay" class="display-box">DEFCON 3</div>
+  <div>
+    <label>Enter Alarm Code:</label>
+    <div id="codeDisplay" class="display-box">Code 0</div>
+    <div class="keypad">
+      ${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
+      <div></div>
+      <button onclick="keypadPress(0)">0</button>
+      <div></div>
     </div>
-
-    <div>
-      <label>Enter Alarm Code:</label>
-      <div id="codeDisplay" class="display-box">Code 0</div>
-      <div class="keypad">
-        ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button onclick="keypadPress(${n})">${n}</button>`).join("")}
-        <div></div><button onclick="keypadPress(0)">0</button><div></div>
-      </div>
-    </div>
-
-    <div class="key-switch-wrapper">
-      <div id="keySwitch" class="key" onclick="toggleKey()"></div>
-      <div id="alarmStatus" class="display-box">🔈 ALARM OFF</div>
-    </div>
-
-    <div class="announcement-wrapper">
-      <label for="announcementInput">📢 Announcement:</label>
-      <input id="announcementInput" placeholder="Type announcement or :clear" />
-      <button onclick="sendAnnouncement()">🔊 Send</button>
-    </div>
-
-    <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
-    <div id="status" class="status">Awaiting update...</div>
   </div>
+
+  <div class="key-switch-wrapper">
+    <div id="keySwitch" class="key" onclick="toggleKey()"></div>
+    <div id="alarmStatus" class="display-box">🔈 ALARM OFF</div>
+  </div>
+
+  <div class="announcement-wrapper">
+    <label for="announcementInput">📢 Announcement:</label>
+    <input id="announcementInput" placeholder="Type announcement or :clear" />
+    <button onclick="sendAnnouncement()">🔊 Send</button>
+  </div>
+
+  <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
+  <div id="status" class="status">Awaiting update...</div>
+</div>
 
 </body>
 </html>
