@@ -5,6 +5,8 @@ import { getDatabase } from "firebase-admin/database";
 const app = express();
 app.use(express.json());
 
+console.log("Server time is:", new Date().toISOString());
+
 // Initialize Firebase using environment variables
 initializeApp({
   credential: cert({
