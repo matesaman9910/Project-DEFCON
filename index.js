@@ -5,26 +5,37 @@ import { getDatabase } from "firebase-admin/database";
 const app = express();
 app.use(express.json());
 
+// Initialize Firebase using environment variables
 initializeApp({
   credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   }),
-  databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app"
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 
 const db = getDatabase();
 
-app.post("/update", (req, res) => {
+// When Roblox sends data here
+app.post("/update", async (req, res) => {
   const { defcon, code, alarmActive } = req.body;
-  db.ref("/").set({
-    defcon,
-    code,
-    alarmActive,
-    lastUpdated: new Date().toISOString()
-  });
-  res.send({ status: "ok" });
+  try {
+    await db.ref("/").set({
+      defcon,
+      code,
+      alarmActive,
+      lastUpdated: new Date().toISOString()
+    });
+    res.send({ status: "ok" });
+  } catch (error) {
+    console.error("❌ Firebase update failed:", error.message);
+    res.status(500).send({ status: "error", message: error.message });
+  }
 });
 
-app.listen(10000, () => console.log("✅ DEFCON proxy running on port 10000"));
+// Start the server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log("✅ DEFCON proxy running on port", PORT);
+});
