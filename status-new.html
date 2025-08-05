@@ -199,22 +199,22 @@
     <div class="defcon-light">1</div>
   </div>
 
-  <!-- Left Info Panel -->
-  <div class="left-panel">
-    <div class="panel-title">📟 Alarm Codes</div>
-    <div class="panel-content">
-      0 – All systems normal<br />
-      1 – Unauthorized activity detected<br />
-      2 – Life-threatening emergency<br />
-      3 – Internal containment failure<br />
-      4 – Incoming unidentified object<br />
-      5 – Hostile forces in proximity<br />
-      6 – Facility systems compromised<br />
-      7 – Evacuation required<br />
-      8 – Intruder present<br />
-      9 – Security override breached<br />
-    </div>
+<!-- Left Info Panel -->
+<div class="left-panel">
+  <div class="panel-title">📟 Alarm Codes</div>
+  <div class="panel-content">
+    0 – All Clear: No active threats<br />
+    1 – Unauthorized Access: Intruder or infiltrator detected<br />
+    2 – Containment Breach: Dangerous entity or object has escaped<br />
+    3 – Contamination Event: Bio/chemical/radiological hazard released<br />
+    4 – Internal Hostile: Armed threat confirmed inside base<br />
+    5 – Anomalous Entity: Unknown or unclassified presence<br />
+    6 – Environmental Hazard: Fire, gas leak, or structural damage<br />
+    7 – System Failure: Reactor, AI, or power core failing<br />
+    8 – Evacuation Protocol: Threat exceeds containment<br />
+    9 – Terminal Event: Base is lost, initiate final procedures<br />
   </div>
+</div>
 
   <!-- Center Display -->
   <div class="center-panel">
@@ -290,18 +290,18 @@
       });
 
       document.getElementById('code').textContent = `Code ${data.code}`;
-      document.getElementById('meaning').textContent = {
-        0: "All systems normal.",
-        1: "Alert: Unauthorized or suspicious activity detected.",
-        2: "Emergency: Life-threatening incident on-site.",
-        3: "Warning: Internal containment failure or breach.",
-        4: "Alert: Unidentified object approaching facility.",
-        5: "Danger: Hostile forces detected in proximity.",
-        6: "Critical: Facility systems compromised.",
-        7: "Evacuation: All personnel evacuate immediately.",
-        8: "Intrusion: Intruder detected within perimeter.",
-        9: "Compromise: Security override breached."
-      }[data.code] || "Unknown";
+document.getElementById('meaning').textContent = {
+  0: "All Clear: No active threats. Base operations normal.",
+  1: "Unauthorized Access: Intruder or infiltrator detected inside base.",
+  2: "Containment Breach: Dangerous entity or object has escaped secure holding.",
+  3: "Contamination Event: Bio, chemical, or radiological hazard released.",
+  4: "Internal Hostile Presence: Armed threat confirmed within the base.",
+  5: "Anomalous Entity Detected: Unknown or unclassified presence active.",
+  6: "Environmental Hazard: Fire, gas leak, or structural danger detected.",
+  7: "Critical System Failure: Reactor, AI, or power core failing.",
+  8: "Evacuation Protocol: Threat exceeds containment. Evacuate immediately.",
+  9: "Terminal Event: Base is lost. Begin final shutdown or abandon protocols."
+}[data.code] || "Unknown";
 
       document.getElementById('alarm').textContent =
         data.alarmActive ? '🔴 ALARM ACTIVE' :
