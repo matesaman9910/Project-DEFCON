@@ -14,9 +14,7 @@
     import {
       getDatabase,
       ref,
-      set,
-      onValue,
-      remove
+      set
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -33,12 +31,13 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // Local state
     let defconLevel = 3;
     let alarmCode = 0;
     let alarmActive = false;
-    let sessionRef = null;
 
-    function requireAuthAction(action) {
+    // Guard: require auth for write actions
+    function requireAuthAction() {
       const user = auth.currentUser;
       if (!user) {
         alert("⚠️ Error: Not authenticated. Please refresh and login again.");
@@ -47,8 +46,38 @@
       return user;
     }
 
+    // Auth UI
+    onAuthStateChanged(auth, (user) => {
+      const panel = document.querySelector(".panel");
+      const overlay = document.getElementById("loginOverlay");
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (user) {
+        panel.style.display = "flex";
+        overlay.style.display = "none";
+        logoutBtn.style.display = "block";
+      } else {
+        panel.style.display = "none";
+        overlay.style.display = "flex";
+        logoutBtn.style.display = "none";
+      }
+    });
+
+    // Auth actions
+    window.login = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password).catch((e) => {
+        document.getElementById("loginError").textContent = e.message;
+      });
+    };
+
+    window.logout = () => {
+      signOut(auth);
+    };
+
+    // Panel actions
     function updateFirebase() {
-      const user = requireAuthAction();
+      requireAuthAction();
       const now = new Date().toISOString();
       set(ref(db, "/"), {
         defcon: defconLevel,
@@ -61,53 +90,14 @@
     }
 
     function sendAnnouncement() {
-      const user = requireAuthAction();
+      requireAuthAction();
       const text = document.getElementById("announcementInput").value.trim();
       set(ref(db, "/announcement"), text);
     }
 
-    onAuthStateChanged(auth, (user) => {
-      const panel = document.querySelector(".panel");
-      const overlay = document.getElementById("loginOverlay");
-      const logoutBtn = document.getElementById("logoutBtn");
-      if (user) {
-        panel.style.display = "flex";
-        overlay.style.display = "none";
-        logoutBtn.style.display = "block";
-
-        // One-session enforcement
-        sessionRef = ref(db, `/sessions/${user.uid}`);
-        set(sessionRef, Date.now());
-        onValue(sessionRef, (snapshot) => {
-          const current = snapshot.val();
-          if (current && current !== Date.now()) {
-            alert("⚠️ You have been logged out: another session started.");
-            logout();
-          }
-        });
-      } else {
-        panel.style.display = "none";
-        overlay.style.display = "flex";
-        if (sessionRef) remove(sessionRef);
-      }
-    });
-
-    window.login = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password).catch((e) => {
-        document.getElementById("loginError").textContent = e.message;
-      });
-    };
-
-    window.logout = () => {
-      const user = auth.currentUser;
-      if (user && sessionRef) remove(ref(db, `/sessions/${user.uid}`));
-      signOut(auth);
-    };
-
+    // UI handlers
     window.setDefcon = (level) => {
-      defconLevel = parseInt(level);
+      defconLevel = parseInt(level, 10);
       document.getElementById("defconDisplay").textContent = `DEFCON ${defconLevel}`;
     };
 
@@ -154,7 +144,7 @@
       padding: 30px;
       width: 500px;
       background: #001100;
-      display: flex;
+      display: none; /* hidden until authenticated */
       flex-direction: column;
       gap: 20px;
       box-shadow: 0 0 30px #0f08;
@@ -267,6 +257,7 @@
 </head>
 <body>
 
+  <!-- Login overlay -->
   <div id="loginOverlay">
     <h2>🔐 Admin Login</h2>
     <input id="email" type="email" placeholder="Email" />
@@ -275,8 +266,10 @@
     <div id="loginError" style="color:red;margin-top:10px;"></div>
   </div>
 
+  <!-- Logout Button -->
   <button id="logoutBtn" onclick="logout()">🚪 Logout</button>
 
+  <!-- Control Panel -->
   <div class="panel crt">
     <h1 class="crt">🖥 DEFCON CRT Control</h1>
 
@@ -320,5 +313,11 @@
     <div id="status" class="status">Awaiting update...</div>
   </div>
 
+  <script>
+    // Show/hide logout button based on auth state (non-module for safety)
+    document.addEventListener("DOMContentLoaded", () => {
+      // The visibility is already managed in onAuthStateChanged above.
+    });
+  </script>
 </body>
 </html>
