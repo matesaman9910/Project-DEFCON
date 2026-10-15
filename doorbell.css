@@ -1,0 +1,53 @@
+/* Project DEFCON — Doorbell v1. Independent CRT styling. */
+#defconDoorbellPublic[hidden], #defconDoorbellAdmin[hidden] { display: none !important; }
+.defcon-doorbell-card {
+  border: 1px solid #36bd55;
+  border-radius: 5px;
+  background: #031308;
+  color: #baffc6;
+  padding: 13px;
+  box-shadow: inset 0 0 12px #0f02, 0 0 13px #0f02;
+  font: 14px/1.4 'Courier New', monospace;
+  min-width: 0;
+}
+.defcon-doorbell-title { color: #63fa8b; font-weight: bold; letter-spacing: 1.5px; margin: 0 0 7px; }
+.defcon-doorbell-info { color: #a8cbb0; font-size: 12px; margin: 7px 0; }
+.defcon-doorbell-button {
+  display: block; width: 100%; padding: 12px 8px; margin: 8px 0;
+  color: #7ff99c; background: #092310; border: 1px solid #6bffa0;
+  border-radius: 4px; font: bold 14px 'Courier New', monospace;
+  cursor: pointer; text-align: center;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+.defcon-doorbell-button:hover:not(:disabled) { background: #145128; box-shadow: 0 0 9px #27bf44; }
+.defcon-doorbell-button:focus-visible { outline: 3px solid #e8e075; outline-offset: 2px; }
+.defcon-doorbell-button:disabled { opacity: .56; cursor: not-allowed; }
+.defcon-doorbell-button.secondary { border-color: #6e9b77; background: #091a0c; color: #b2d9b7; }
+.defcon-doorbell-message { min-height: 1.5em; font-size: 12px; color: #e7d68b; overflow-wrap: anywhere; }
+.defcon-doorbell-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.defcon-doorbell-live { color: #91ed9f; font-size: 12px; }
+.defcon-doorbell-card.is-ringing { border-color: #ffe27d; box-shadow: 0 0 20px #ffbb44aa; }
+/* Original admin uses height:100vh and overflow:hidden; allow the new card to scroll. */
+body:has(#defconDoorbellAdmin) { min-height: 100vh; height: auto; overflow-y: auto; justify-content: flex-start; padding: 68px 15px 32px; }
+body:has(#defconDoorbellAdmin) .panel { width: min(500px,100%); }
+/* The public status page disables pointer events at body level; re-enable on doorbell. */
+#defconDoorbellPublic, #defconDoorbellPublic * { pointer-events: auto; }
+@media (max-width: 860px) {
+  body:has(#defconDoorbellPublic) {
+    height: auto; min-height: 100vh;
+    display: grid;
+    grid-template-areas: 'defcon' 'center' 'settings' 'info' 'footer';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto;
+  }
+  body:has(#defconDoorbellPublic) .defcon-bar { flex-wrap: wrap; gap: 7px; }
+  body:has(#defconDoorbellPublic) .defcon-light { width: 48px; height: 48px; font-size: 1.5em; }
+  body:has(#defconDoorbellPublic) .center-panel { padding: 18px 12px; min-width: 0; }
+  body:has(#defconDoorbellPublic) .title { font-size: 2em; }
+  body:has(#defconDoorbellPublic) #alarm { font-size: 1.8em; }
+  body:has(#defconDoorbellPublic) .right-panel, body:has(#defconDoorbellPublic) .left-panel {
+    border: 0; border-top: 1px solid #0a8e31; padding: 16px;
+  }
+  body:has(#defconDoorbellPublic) .time-bar { min-height: 64px; }
+}

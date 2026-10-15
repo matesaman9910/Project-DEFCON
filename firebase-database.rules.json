@@ -1,0 +1,11 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth != null && auth.uid === 'Amnc2T1fU4SZ5t0SFUIN7bOMDei1'",
+    "doorbell": {
+      "ringAt": {
+        ".write": "root.child('doorbell/enabled').val() === true && (!data.exists() || (data.isNumber() && data.val() <= now - 30000)) && newData.isNumber() && newData.val() === now"
+      }
+    }
+  }
+}
