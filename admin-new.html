@@ -3,33 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <title>DEFCON CRT Control Panel</title>
+  <script src="./firebase-config.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
     import {
       getAuth,
-      signInWithEmailAndPassword,
+      GoogleAuthProvider,
+      signInWithPopup,
       onAuthStateChanged,
       signOut
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
     import {
       getDatabase,
       ref,
-      set
+      set,
+      update
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "",
-      authDomain: "",
-      databaseURL: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
-    };
+    const firebaseConfig = window.DEFCON_FIREBASE_CONFIG;
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
+    const ADMIN_UID = window.DEFCON_ADMIN_UID;
 
     // Local state
     let defconLevel = 3;
@@ -39,60 +35,77 @@
     // Guard: require auth for write actions
     function requireAuthAction() {
       const user = auth.currentUser;
-      if (!user) {
+      if (!user || user.uid !== ADMIN_UID) {
         alert("⚠️ Error: Not authenticated. Please refresh and login again.");
         throw new Error("Unauthenticated access blocked");
       }
       return user;
     }
 
-    // Auth UI
+    // Auth UI: show the controls only to this Firebase UID.
+    // Real access control is enforced separately by Realtime Database Rules.
     onAuthStateChanged(auth, (user) => {
-      const panel = document.querySelector(".panel");
-      const overlay = document.getElementById("loginOverlay");
-      const logoutBtn = document.getElementById("logoutBtn");
-      if (user) {
-        panel.style.display = "flex";
-        overlay.style.display = "none";
-        logoutBtn.style.display = "block";
-      } else {
-        panel.style.display = "none";
-        overlay.style.display = "flex";
-        logoutBtn.style.display = "none";
+      const authorized = Boolean(user && user.uid === ADMIN_UID);
+      document.querySelector(".panel").style.display = authorized ? "flex" : "none";
+      document.getElementById("loginOverlay").style.display = authorized ? "none" : "flex";
+      document.getElementById("logoutBtn").style.display = authorized ? "block" : "none";
+      if (user && !authorized) {
+        document.getElementById("loginError").textContent =
+          "Access denied. Your Firebase UID is: " + user.uid +
+          ". Add it to firebase-config.js and the Firebase Database Rules.";
       }
     });
 
     // Auth actions
-    window.login = () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password).catch((e) => {
-        document.getElementById("loginError").textContent = e.message;
-      });
+    window.login = async () => {
+      const error = document.getElementById("loginError");
+      error.textContent = "";
+      try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        error.textContent = e.message;
+      }
     };
 
-    window.logout = () => {
-      signOut(auth);
+    window.logout = async () => {
+      try {
+        await signOut(auth);
+        document.getElementById("loginError").textContent = "";
+      } catch (e) {
+        document.getElementById("loginError").textContent = e.message;
+      }
     };
 
     // Panel actions
-    function updateFirebase() {
-      requireAuthAction();
-      const now = new Date().toISOString();
-      set(ref(db, "/"), {
-        defcon: defconLevel,
-        code: alarmCode,
-        alarmActive,
-        lastUpdated: now
-      });
-      document.getElementById("status").textContent =
-        "✅ Updated at " + new Date(now).toLocaleTimeString();
+    async function updateFirebase() {
+      try {
+        requireAuthAction();
+        const now = new Date().toISOString();
+        // Update only these values: preserve /announcement and other fields.
+        await update(ref(db, "/"), {
+          defcon: defconLevel,
+          code: alarmCode,
+          alarmActive,
+          lastUpdated: now
+        });
+        document.getElementById("status").textContent =
+          "✅ Updated at " + new Date(now).toLocaleTimeString();
+      } catch (e) {
+        document.getElementById("status").textContent = "Update failed: " + e.message;
+      }
     }
 
-    function sendAnnouncement() {
-      requireAuthAction();
-      const text = document.getElementById("announcementInput").value.trim();
-      set(ref(db, "/announcement"), text);
+    async function sendAnnouncement() {
+      try {
+        requireAuthAction();
+        const text = document.getElementById("announcementInput").value.trim();
+        await set(ref(db, "/announcement"), text);
+        document.getElementById("status").textContent = "Announcement sent.";
+      } catch (e) {
+        document.getElementById("status").textContent = "Announcement failed: " + e.message;
+      }
     }
 
     // UI handlers
@@ -260,9 +273,8 @@
   <!-- Login overlay -->
   <div id="loginOverlay">
     <h2>🔐 Admin Login</h2>
-    <input id="email" type="email" placeholder="Email" />
-    <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
+    <button onclick="login()">Sign in with Google</button>
+    <button onclick="logout()">Sign out / Switch account</button>
     <div id="loginError" style="color:red;margin-top:10px;"></div>
   </div>
 
