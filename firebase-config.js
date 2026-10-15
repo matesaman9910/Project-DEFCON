@@ -1,13 +1,13 @@
 // Firebase WEB configuration. These values are public by design.
 // Copy the exact values from Firebase Console > Project settings > Your apps > Config.
 window.DEFCON_FIREBASE_CONFIG = {
-  apiKey: "PASTE_FIREBASE_WEB_API_KEY",
-  authDomain: "PASTE_AUTH_DOMAIN",
+  apiKey: "AIzaSyAvTcWNJfHCnhEzf77bNkNIPjstD4n-NY4",
+  authDomain: "project-defcon.firebaseapp.com",
   databaseURL: "https://project-defcon-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "project-defcon",
-  storageBucket: "PASTE_STORAGE_BUCKET",
-  messagingSenderId: "PASTE_MESSAGING_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  storageBucket: "project-defcon.firebasestorage.app",
+  messagingSenderId: "376651705241",
+  appId: "1:376651705241:web:8cace3386f1c96bc790108"
 };
 
 // After your first Google sign-in, copy your UID displayed in the admin panel.
