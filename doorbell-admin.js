@@ -43,7 +43,7 @@ function render() {
   stateLabel.textContent = !transportUp ? 'DATABASE OFFLINE'
     : !enabledLoaded ? 'VERIFYING SETTINGS…'
     : enabled ? 'PUBLIC BUTTON VISIBLE' : 'PUBLIC BUTTON HIDDEN';
-  soundButton.textContent = soundArmed ? 'MUTE RINGER ON THIS DEVICE' : 'ARM RINGER + SOUND TEST';
+  soundButton.textContent = soundArmed ? 'MUTE SOUND ON THIS DEVICE' : 'ENABLE SOUND + TEST';
   notifyButton.textContent = typeof Notification === 'undefined' ? 'DESKTOP ALERTS UNSUPPORTED'
     : Notification.permission === 'granted' ? 'DESKTOP ALERTS ALLOWED'
     : 'ENABLE DESKTOP ALERTS';
@@ -70,7 +70,7 @@ function showRing(time) {
   }
   if (soundArmed) {
     playSound().then(() => say('🔔 DOORBELL RECEIVED — sound playing.'))
-      .catch(error => say('🔔 DOORBELL RECEIVED — browser blocked sound. Click ARM/TEST.'));
+      .catch(error => say('🔔 DOORBELL RECEIVED — browser blocked sound. Click ENABLE SOUND + TEST.'));
   } else {
     say('🔔 DOORBELL RECEIVED — ringer muted on this device.');
   }
@@ -145,12 +145,12 @@ soundButton.addEventListener('click', async () => {
   if (soundArmed) {
     soundArmed = false;
     ringtone.pause();
-    say('RINGER MUTED ON THIS DEVICE. Public button visibility unchanged.');
+    say('SOUND MUTED ON THIS DEVICE. Public button visibility unchanged.');
   } else {
     try {
       await playSound(); // Gesture-unlock audio and confirm the actual MP3 loads.
       soundArmed = true;
-      say('RINGER ARMED. This page must remain open to receive rings.');
+      say('SOUND ENABLED ON THIS DEVICE. Keep this admin page open to hear rings.');
     } catch (error) {
       soundArmed = false;
       say('AUDIO FAILED: ' + error.message);
