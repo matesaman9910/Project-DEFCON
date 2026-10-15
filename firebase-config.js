@@ -12,4 +12,4 @@ window.DEFCON_FIREBASE_CONFIG = {
 
 // After your first Google sign-in, copy your UID displayed in the admin panel.
 // This browser-side check is ONLY for user experience; Firebase Rules protect writes.
-window.DEFCON_ADMIN_UID = "PASTE_YOUR_FIREBASE_UID";
+window.DEFCON_ADMIN_UID = "Amnc2T1fU4SZ5t0SFUIN7bOMDei1";
