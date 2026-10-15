@@ -267,6 +267,7 @@
       width: fit-content;
     }
   </style>
+  <link rel="stylesheet" href="./doorbell.css">
 </head>
 <body>
 
@@ -321,7 +322,22 @@
       <button onclick="sendAnnouncement()">🔊 Send</button>
     </div>
 
-    <button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
+        <!-- CR DOORBELL / ADMINISTRATION: hidden along with existing .panel until authorized. -->
+    <section id="defconDoorbellAdmin" class="defcon-doorbell-card" hidden aria-label="Control Room Doorbell">
+      <div class="defcon-doorbell-title">🔔 CONTROL ROOM DOORBELL</div>
+      <div id="defconDoorbellState" class="defcon-doorbell-live">VERIFYING SETTINGS…</div>
+      <p class="defcon-doorbell-info">Visibility is global. Sound is local to this browser. Default public state: HIDDEN.</p>
+      <button id="defconDoorbellVisibility" type="button" class="defcon-doorbell-button" disabled>LOADING VISIBILITY…</button>
+      <div class="defcon-doorbell-grid">
+        <button id="defconDoorbellSound" type="button" class="defcon-doorbell-button secondary">ARM RINGER + TEST</button>
+        <button id="defconDoorbellTest" type="button" class="defcon-doorbell-button secondary">TEST MP3</button>
+      </div>
+      <button id="defconDoorbellNotifications" type="button" class="defcon-doorbell-button secondary">ENABLE DESKTOP ALERTS</button>
+      <div id="defconDoorbellLastRing" class="defcon-doorbell-info" aria-live="polite">NO RING RECEIVED THIS SESSION</div>
+      <div id="defconDoorbellAdminFeedback" class="defcon-doorbell-message" role="status" aria-live="polite">OPEN THIS PAGE AND ARM THE RINGER TO HEAR REQUESTS.</div>
+    </section>
+
+<button class="update-btn" onclick="updateStatus()">💾 UPDATE</button>
     <div id="status" class="status">Awaiting update...</div>
   </div>
 
@@ -331,5 +347,6 @@
       // The visibility is already managed in onAuthStateChanged above.
     });
   </script>
+  <script type="module" src="./doorbell-admin.js"></script>
 </body>
 </html>
