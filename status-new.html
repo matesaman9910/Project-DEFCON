@@ -185,9 +185,26 @@
       0%, 100% { opacity: 0; }
       50% { opacity: 0.4; }
     }
+    /* An explicit and persistent offline state — never fake a healthy status. */
+    body.defcon-sync-offline { background-color: #1d1b16; }
+    #connectionState {
+      margin-top: 12px;
+      border: 1px solid #ffb84d;
+      background: #281b06;
+      padding: 10px 14px;
+      color: #ffcb70;
+      font-weight: bold;
+      letter-spacing: 1px;
+      font-size: 1.05em;
+    }
+    #connectionState.connected {
+      color: #70ff9a;
+      background: #092012;
+      border-color: #70ff9a;
+    }
   </style>
 </head>
-<body>
+<body class="defcon-sync-offline">
   <div id="flash-overlay"></div>
 
   <!-- DEFCON Bar -->
@@ -219,12 +236,13 @@
   <!-- Center Display -->
   <div class="center-panel">
     <div class="title">🚨 PROJECT DEFCON</div>
-    <div id="alarm">Loading...</div>
-    <div id="code">Code ...</div>
-    <div id="meaning">Loading description...</div>
-    <div id="announcement">No announcement</div>
+    <div id="alarm">⚫ SYSTEM OFFLINE</div>
+    <div id="code">Code —</div>
+    <div id="meaning">Live database status has not been verified.</div>
+    <div id="announcement">Announcement unavailable</div>
     <div id="space"></div>
-    <div id="last-center">Updated ...</div>
+    <div id="last-center">No verified live data</div>
+    <div id="connectionState" role="status" aria-live="polite">SYSTEM OFFLINE — LIVE DATA UNAVAILABLE</div>
   </div>
 
   <!-- Right Panel -->
@@ -245,12 +263,9 @@
 
   <!-- Logic -->
   <script>
+    // Defer Firebase initialization until after the UI and clock are ready.
+    // That way a missing configuration does not hide a fatal offline state.
     const firebaseConfig = window.DEFCON_FIREBASE_CONFIG;
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const statusRef = db.ref('/');
-    const announcementRef = db.ref('/announcement');
 
     const audio = new Audio("https://file.garden/aACuwggY3QmuIi9B/basealert.mp3");
     audio.loop = true;
@@ -327,9 +342,9 @@ document.getElementById('meaning').textContent = {
       }
     }
 
-    statusRef.on('value', snap => updateAlarm(snap.val()));
 
-    announcementRef.on('value', snap => {
+
+    function handleAnnouncement(snap) {
       const text = snap.val();
       const display = document.getElementById("announcement");
 
@@ -339,8 +354,8 @@ document.getElementById('meaning').textContent = {
         return;
       }
 
+      display.textContent = text;
       if (text !== lastAnnouncement) {
-        display.textContent = text;
         lastAnnouncement = text;
 
         announceSound.play().then(() => {
@@ -351,7 +366,7 @@ document.getElementById('meaning').textContent = {
           synth.speak(utter);
         });
       }
-    });
+    }
 // ahoj
     window.toggleMute = () => {
       isMuted = !isMuted;
@@ -363,6 +378,96 @@ document.getElementById('meaning').textContent = {
     setInterval(() => {
       document.getElementById("bigClock").textContent = new Date().toLocaleTimeString();
     }, 1000);
+  
+    // Connection is healthy ONLY if the transport is up and valid live data was read.
+    const connectionEl = document.getElementById('connectionState');
+    let transportConnected = false;
+    let latestVerifiedUpdate = null;
+
+    function showUnavailable(reason) {
+      connectionEl.classList.remove('connected');
+      connectionEl.textContent = reason;
+      document.body.classList.add('defcon-sync-offline');
+      document.body.classList.remove('alarm-flash');
+      for (let level = 1; level <= 5; level++) document.body.classList.remove('defcon-' + level);
+      document.querySelectorAll('.defcon-light').forEach(el => {
+        el.style.backgroundColor = '#111';
+        el.style.color = 'rgba(0,255,0,0.85)';
+      });
+      document.getElementById('alarm').textContent = '⚫ SYSTEM OFFLINE';
+      document.getElementById('code').textContent = 'Code —';
+      document.getElementById('meaning').textContent = 'Live DEFCON/alarm status cannot be verified.';
+      document.getElementById('announcement').textContent = 'Announcement unavailable';
+      document.getElementById('last-center').textContent = latestVerifiedUpdate
+        ? 'Last verified value: ' + latestVerifiedUpdate + ' (not live)'
+        : 'No verified live data';
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    function showSyncing() {
+      showUnavailable('CONNECTED — VERIFYING LIVE STATUS…');
+    }
+
+    function displayStatus(snapshot) {
+      if (!transportConnected) return;
+      const data = snapshot.val();
+      if (!data || !Number.isInteger(data.defcon) || data.defcon < 1 || data.defcon > 5
+          || !Number.isInteger(data.code) || data.code < 0 || data.code > 9
+          || typeof data.alarmActive !== 'boolean'
+          || typeof data.lastUpdated !== 'string'
+          || !Number.isFinite(Date.parse(data.lastUpdated))) {
+        showUnavailable('NO VALID LIVE STATUS — CHECK DATABASE CONTENTS');
+        return;
+      }
+      updateAlarm(data);
+      latestVerifiedUpdate = new Date(data.lastUpdated).toLocaleString();
+      document.body.classList.remove('defcon-sync-offline');
+      connectionEl.classList.add('connected');
+      connectionEl.textContent = '● FIREBASE CONNECTED — LIVE DATA';
+    }
+
+    function firebaseError(error) {
+      console.error('DEFCON Firebase:', error);
+      showUnavailable('DATABASE ERROR — ' + (error.code || error.message || 'CHECK CONSOLE'));
+    }
+
+    // Clock keeps working even if Firebase throws on initialization.
+    // Invalid Firebase config must not accidentally look like a healthy system.
+    try {
+      const required = ['apiKey', 'authDomain', 'databaseURL', 'projectId', 'appId'];
+      if (!firebaseConfig || required.some(key =>
+          typeof firebaseConfig[key] !== 'string'
+          || firebaseConfig[key].trim() === ''
+          || firebaseConfig[key].includes('PASTE_'))) {
+        throw new Error('Firebase web configuration is missing or contains placeholders');
+      }
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const statusRef = db.ref('/');
+      const announcementRef = db.ref('/announcement');
+
+      // Live updates plus a per-reconnection read. The latter ensures that we
+      // verify status even if cached values are not re-emitted after reconnect.
+      statusRef.on('value', displayStatus, firebaseError);
+      announcementRef.on('value', snap => {
+        if (transportConnected) handleAnnouncement(snap);
+      }, firebaseError);
+
+      db.ref('.info/connected').on('value', snap => {
+        transportConnected = snap.val() === true;
+        if (!transportConnected) {
+          showUnavailable('DATABASE DISCONNECTED — LIVE DATA UNAVAILABLE');
+          return;
+        }
+        showSyncing();
+        statusRef.once('value').then(displayStatus).catch(firebaseError);
+        announcementRef.once('value').then(handleAnnouncement).catch(firebaseError);
+      }, firebaseError);
+    } catch (error) {
+      firebaseError(error);
+    }
+
   </script>
 </body>
 </html>
